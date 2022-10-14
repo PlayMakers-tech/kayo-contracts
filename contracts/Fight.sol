@@ -5,6 +5,7 @@ import "@openzeppelin/contracts/utils/Address.sol";
 import "hardhat/console.sol";
 import "./KAYO.sol";
 import "./Fighter.sol";
+import "./Statistics.sol";
 
 
 contract Fight {
@@ -12,6 +13,7 @@ contract Fight {
     uint64 private _roundIds;
     address payable private _owner;
     Fighter private _fighterContract;
+    Statistics private _statisticsContract;
     uint256 private fightPrice = 0.001 ether;
 
     mapping(uint64 => KAYO.Fight) private _fightData;
@@ -25,9 +27,8 @@ contract Fight {
     event RoundResult(uint64 indexed id, uint8 indexed round, int8 result, uint64 roundId);
     event Strategy(uint64 indexed fightId, uint64 indexed tokenId, uint256 data);
 
-    constructor(address fighterContractAddress) public {
+    constructor() {
         _owner = payable(msg.sender);
-        setFighterContract(fighterContractAddress);
     }
 
     function getFightAmount() public view returns(uint64) {
@@ -37,6 +38,10 @@ contract Fight {
     function setFighterContract(address addr) public {
         require(_owner == msg.sender);
         _fighterContract = Fighter(addr);
+    }
+    function setStatisticsContract(address addr) public {
+        require(_owner == msg.sender);
+        _statisticsContract = Statistics(addr);
     }
 
     function getFightData(uint64 id) public view returns (KAYO.Fight memory) {
@@ -133,6 +138,10 @@ contract Fight {
             _fighterContract.transferForFight(true, fa.owner, fa.id);
             _fighterContract.transferForFight(true, fb.owner, fb.id);
         }
+
+        // Earn XP
+        _statisticsContract.earnXP(fa.id, f.result<0?1:uint8(f.result+2));
+        _statisticsContract.earnXP(fb.id, f.result>0?1:uint8(-f.result+2));
 
         _fighterContract.setFightState(f.a, 0, fa.booked, 0);
         _fighterContract.setFightState(f.b, 0, fb.booked, 0);

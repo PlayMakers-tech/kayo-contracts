@@ -1,23 +1,42 @@
 async function main() {
   // Grab the contract factory 
-  const Fighter = await ethers.getContractFactory("Fighter");
-  const Fight   = await ethers.getContractFactory("Fight");
+  const Fighter    = await ethers.getContractFactory("Fighter");
+  const Fight      = await ethers.getContractFactory("Fight");
+  const Statistics = await ethers.getContractFactory("Statistics");
+  const Ability    = await ethers.getContractFactory("Ability");
 
   // Start deployment, returning a promise that resolves to a contract object
-  console.log("Deploying Fighter Contract...")
+  console.log("Deploying Fighter Contract...");
   const contractFighter = await Fighter.deploy(); // Instance of the contract
-  console.log("Deployed Fighter Contract")
-  await new Promise(r => setTimeout(r, 10000));
-  console.log("Deploying Fight Contract...")
-  const contractFight   = await Fight.deploy(contractFighter.address);
-  console.log("Deployed Fight Contract")
-  await new Promise(r => setTimeout(r, 10000));
-  console.log("Configure links...")
+  console.log("Deployed Fighter Contract");
+  console.log("Deploying Fight Contract...");
+  const contractFight   = await Fight.deploy();
+  console.log("Deployed Fight Contract");
+  console.log("Deploying Statistics Contract...");
+  const contractStatistics = await Statistics.deploy();
+  console.log("Deployed Statistics Contract");
+  console.log("Deploying Ability Contract...");
+  const contractAbility = await Ability.deploy();
+  console.log("Deployed Ability Contract");
+  // Delay to avoid timing issue
+  await new Promise(r => setTimeout(r, 15000));
+  console.log("Configure links...");
+  // Set simple addresses
   await contractFighter.setFightContractAddress(contractFight.address);
-  console.log("Configured links")
+  await contractStatistics.setFighterContractAddress(contractFighter.address);
+  await contractStatistics.setFightContractAddress(contractFight.address);
+  await contractAbility.setFighterContractAddress(contractFighter.address);  
+  // Set contract objects
+  await contractFighter.setStatisticsContract(contractStatistics.address);
+  await contractFighter.setAbilityContract(contractAbility.address);
+  await contractFight.setFighterContract(contractFighter.address);
+  await contractFight.setStatisticsContract(contractStatistics.address);
+  console.log("Configured links");
 
-  console.log("Fighter Contract deployed to address:", contractFighter.address);
-  console.log("Fight   Contract deployed to address:", contractFight.address);
+  console.log("Fighter    Contract deployed to address:", contractFighter.address);
+  console.log("Fight      Contract deployed to address:", contractFight.address);
+  console.log("Statistics Contract deployed to address:", contractStatistics.address);
+  console.log("Ability    Contract deployed to address:", contractAbility.address);
 }
 
 main()

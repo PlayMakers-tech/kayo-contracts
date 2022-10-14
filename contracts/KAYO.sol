@@ -17,15 +17,12 @@ library KAYO {
 		uint64 fight; // 0 or fightId
 		uint64 booked; // 0 or tournamentId
 		uint8 queue; // 0 or stakeType
-		// Relevant for gameplay
-		uint16 str;
-		uint16 agi;
-		uint16 con;
-		uint16 spd;
+		// Genealogy
+		uint64 father;
+		uint64 mother;
 	}
 
-   function createFighterInit(uint64 id, address owner) internal view returns (Fighter memory) {
-   	uint r = random(id);
+  function createFighterInit(uint64 id, address owner) internal pure returns (Fighter memory) {   	
    	return Fighter({
    		id:     id,
    		owner:  payable(owner),
@@ -34,14 +31,11 @@ library KAYO {
    		fight:  0,
    		booked: 0,
    		queue:  0,
-   		str:    uint16(1+r%10),
-   		agi:    uint16(1+(r/10)%10),
-   		con:    uint16(1+(r/100)%10),
-   		spd:    uint16(1+(r/1000)%10)
+   		father: 0,
+   		mother: 0
    	});
-   }
-   function createFighterFusion(uint64 id, address owner, Fighter storage f, Fighter storage m) internal view returns (Fighter memory) {
-   	uint r = random(id);
+  }
+  function createFighterFusion(uint64 id, address owner, Fighter storage f, Fighter storage m) internal view returns (Fighter memory) {
    	return  Fighter({
    		id:     id,
    		owner:  payable(owner),
@@ -50,12 +44,10 @@ library KAYO {
    		fight:  0,
    		booked: 0,
    		queue:  0,
-   		str:    (f.str+ m.str+1)/2,
-   		agi:    (f.agi+ m.agi+1)/2,
-   		con:    (f.con+ m.con+1)/2,
-   		spd:    (f.spd+ m.spd+1)/2
+   		father: f.id,
+   		mother: m.id
    	});
-   }
+  }
 
   function random(uint64 add) private view returns (uint) {
     return uint(keccak256(abi.encodePacked(block.difficulty, block.timestamp, msg.sender, add)));
@@ -81,7 +73,7 @@ library KAYO {
 		uint256 data;
 	}
 
-	function createFight(uint64 id, Fighter memory a, Fighter memory b, uint8 roundCnt, uint8 stake, uint256 price) internal returns (Fight memory) {
+	function createFight(uint64 id, Fighter memory a, Fighter memory b, uint8 roundCnt, uint8 stake, uint256 price) internal pure returns (Fight memory) {
 		// Require msg.sender to be one of the owners or the _owner of the contract
 		// Require distinct owners ?
 		require(!a.listed && !b.listed);
@@ -98,6 +90,82 @@ library KAYO {
    		data:     0
    	});
   }
+
+  // ABILITY
+	struct Ability {
+		uint64 id;
+		uint16 array;
+	}
+
+	function createAbilityInit(uint64 id) internal pure returns (Ability memory) {
+   	//uint r = random(id);
+   	return Ability({
+   		id:     id,
+   		array:   0
+   	});
+  }
+  function createAbilityFusion(uint64 id, Ability storage f, Ability storage m) internal view returns (Ability memory) {
+   	//uint r = random(id);
+   	return Ability({
+   		id:     id,
+   		array:   f.array + m.array
+   	});
+  }
+
+  // STATISTICS
+	struct Statistics {
+		uint64 id;
+		uint64 xp;
+		uint16 str;
+		uint16 agi;
+		uint16 con;
+		uint16 spd;
+	}
+
+	function createStatisticsInit(uint64 id) internal view returns (Statistics memory) {
+   	uint r = random(id);
+   	return Statistics({
+   		id:     id,
+   		xp:     0,
+   		str:    uint16(1+r%10),
+   		agi:    uint16(1+(r/10)%10),
+   		con:    uint16(1+(r/100)%10),
+   		spd:    uint16(1+(r/1000)%10)
+   	});
+  }
+  function createStatisticsFusion(uint64 id, Statistics storage f, Statistics storage m) internal view returns (Statistics memory) {
+   	//uint r = random(id);
+   	return Statistics({
+   		id:     id,
+   		xp:     0,
+   		str:    (f.str+m.str)/2,
+   		agi:    (f.agi+m.agi)/2,
+   		con:    (f.con+m.con)/2,
+   		spd:    (f.spd+m.spd)/2
+   	});
+  }
+  function levelUpStatistics(Statistics storage old) internal view returns (Statistics memory) {
+   	return Statistics({
+   		id:     old.id,
+   		xp:     old.xp,
+   		str:    old.str+1,
+   		agi:    old.agi+1,
+   		con:    old.con+1,
+   		spd:    old.spd+1
+   	});
+  }
+
+  function getLevelFromXP(uint64 xp) internal pure returns (uint16) {
+  	return uint16(sqrt(xp/10));
+  }
+  function sqrt(uint64 x) internal pure returns (uint64 y) {
+    uint64 z = (x+1)/2;
+    y = x;
+    while (z < y) {
+        y = z;
+        z = (x/z + z)/2;
+    }
+}
 
   /*
 	// FIGHTER

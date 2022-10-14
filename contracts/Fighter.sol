@@ -5,12 +5,16 @@ import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "hardhat/console.sol";
 import "./KAYO.sol";
+import "./Statistics.sol";
+import "./Ability.sol";
 
 
 contract Fighter is ERC721 {
     uint64 private _tokenIds;
     address payable private _owner;
     address private _fightContractAddress;
+    Statistics private _statisticsContract;
+    Ability private _abilityContract;
     uint256 private mintPrice    = 0.02  ether;
     uint256 private fusionPrice  = 0.05  ether;
     uint256 private listPrice = 0.001 ether;
@@ -20,7 +24,7 @@ contract Fighter is ERC721 {
     event List(uint64 id, uint256 price);
     event Unlist(uint64 id);
 
-    constructor() public ERC721("Fighter", "KAYO") {
+    constructor() ERC721("Fighter", "KAYO") {
         _owner = payable(msg.sender);
     }
 
@@ -28,6 +32,8 @@ contract Fighter is ERC721 {
         require(msg.value == mintPrice);
         _safeMint(msg.sender, ++_tokenIds);
         _fighterData[_tokenIds] = KAYO.createFighterInit(_tokenIds, msg.sender);
+        _statisticsContract.mintNFT(_tokenIds);
+        _abilityContract.mintNFT(_tokenIds);
         Address.sendValue(_owner, mintPrice);
         return _tokenIds;
     }
@@ -64,6 +70,14 @@ contract Fighter is ERC721 {
         require(_owner == msg.sender);
         _fightContractAddress = addr;
     }
+    function setStatisticsContract(address addr) public {
+        require(_owner == msg.sender);
+        _statisticsContract = Statistics(addr);
+    }
+    function setAbilityContract(address addr) public {
+        require(_owner == msg.sender);
+        _abilityContract = Ability(addr);
+    }
 
     function fusion(uint64 father, uint64 mother) public payable returns (uint64) {
         require(father != mother);
@@ -71,7 +85,9 @@ contract Fighter is ERC721 {
         require(owner == msg.sender && owner == ownerOf(mother));
         require(msg.value == fusionPrice);
         _safeMint(owner, ++_tokenIds);
-        _fighterData[_tokenIds] = KAYO.createFighterFusion(_tokenIds, owner, _fighterData[father], _fighterData[mother]);
+        _fighterData[_tokenIds] = KAYO.createFighterFusion(_tokenIds, owner, _fighterData[father], _fighterData[mother]);    
+        _statisticsContract.fusion(_tokenIds, father, mother);
+        _abilityContract.fusion(_tokenIds, father, mother);
         _burn(father);
         _burn(mother);
         _fighterData[father].owner = payable(address(this));
