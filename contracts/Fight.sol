@@ -150,26 +150,26 @@ contract Fight {
 
 
     function lookForFight(uint64 tokenId, uint8 stake) public payable {
-        require(stake > 0 && stake < 7);
+        require(stake > 0 && stake < 7, "Invalid stake code");
         KAYO.Fighter memory fa = _fighterContract.getFighterData(tokenId);
-        require(fa.owner == msg.sender 
-            && fa.listed == false 
-            && fa.queue == 0 
-            && fa.booked == 0 
-            && fa.fight == 0);
+        require(fa.owner == msg.sender, "You do not own this fighter");
+        require(fa.listed == false , "The fighter is listed on the marketplace");
+        require(fa.queue == 0, "The fighter is already in a queue");
+        require(fa.booked == 0, "The fighter is already booked");
+        require(fa.fight == 0, "The fighter is already in a fight");
         // No stake || Stake Fighter || Custom stake
         if(stake == 1 || stake == 2 || stake == 3) {   
-            require(msg.value == fightPrice);
+            require(msg.value == fightPrice, "Required fight price not met");
         }
         // Stake Ether values
         else if(stake == 4) {
-            require(msg.value == fightPrice + 0.01 ether);
+            require(msg.value == fightPrice + 0.01 ether, "Required fight price + stake not met");
         }
         else if(stake == 5) {
-            require(msg.value == fightPrice + 0.1 ether);
+            require(msg.value == fightPrice + 0.1 ether, "Required fight price + stake not met");
         }
         else if(stake == 6) {
-            require(msg.value == fightPrice + 1.0 ether);
+            require(msg.value == fightPrice + 1.0 ether, "Required fight price + stake not met");
         }
 
         _fighterContract.transferForFight(false, fa.owner, fa.id);

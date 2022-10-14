@@ -24,7 +24,7 @@ contract Statistics {
         _fighterContractAddress = addr;
     }
 
-    function setFightContract(address addr) public {
+    function setFightContractAddress(address addr) public {
         require(_owner == msg.sender);
         _fightContractAddress = addr;
     }

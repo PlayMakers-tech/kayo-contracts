@@ -29,7 +29,7 @@ contract Fighter is ERC721 {
     }
 
     function mintNFT() public payable returns (uint64) {
-        require(msg.value == mintPrice);
+        require(msg.value == mintPrice, "Required minting price not met");
         _safeMint(msg.sender, ++_tokenIds);
         _fighterData[_tokenIds] = KAYO.createFighterInit(_tokenIds, msg.sender);
         _statisticsContract.mintNFT(_tokenIds);
@@ -46,7 +46,7 @@ contract Fighter is ERC721 {
         return mintPrice;
     }
     function setMintPrice(uint256 value) public {
-        require(_owner == msg.sender);
+        require(_owner == msg.sender, "You do not have permissions to do this");
         mintPrice = value;
     }
 
@@ -54,7 +54,7 @@ contract Fighter is ERC721 {
         return fusionPrice;
     }
     function setFusionPrice(uint256 value) public {
-        require(_owner == msg.sender);
+        require(_owner == msg.sender, "You do not have permissions to do this");
         fusionPrice = value;
     }
 
@@ -62,28 +62,28 @@ contract Fighter is ERC721 {
         return listPrice;
     }
     function setListPrice(uint256 value) public {
-        require(_owner == msg.sender);
+        require(_owner == msg.sender, "You do not have permissions to do this");
         listPrice = value;
     }
 
     function setFightContractAddress(address addr) public {
-        require(_owner == msg.sender);
+        require(_owner == msg.sender, "You do not have permissions to do this");
         _fightContractAddress = addr;
     }
     function setStatisticsContract(address addr) public {
-        require(_owner == msg.sender);
+        require(_owner == msg.sender, "You do not have permissions to do this");
         _statisticsContract = Statistics(addr);
     }
     function setAbilityContract(address addr) public {
-        require(_owner == msg.sender);
+        require(_owner == msg.sender, "You do not have permissions to do this");
         _abilityContract = Ability(addr);
     }
 
     function fusion(uint64 father, uint64 mother) public payable returns (uint64) {
-        require(father != mother);
+        require(father != mother, "Two distrinct fighters need to be selected");
         address owner = ownerOf(father);
-        require(owner == msg.sender && owner == ownerOf(mother));
-        require(msg.value == fusionPrice);
+        require(owner == msg.sender && owner == ownerOf(mother), "You do not have permissions to do this");
+        require(msg.value == fusionPrice, "Required fusion price not met");
         _safeMint(owner, ++_tokenIds);
         _fighterData[_tokenIds] = KAYO.createFighterFusion(_tokenIds, owner, _fighterData[father], _fighterData[mother]);    
         _statisticsContract.fusion(_tokenIds, father, mother);

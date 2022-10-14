@@ -27,7 +27,7 @@ contract Ability {
         _fighterContractAddress = addr;
     }
 
-    function getAbility(uint64 id) public view returns (KAYO.Ability memory) {
+    function getAbilities(uint64 id) public view returns (KAYO.Ability memory) {
         return _abilityData[id];
     }
 
