@@ -55,11 +55,11 @@ describe("Overall test", function () {
     const { contractFighter, contractStatistics, contractAbility, owner, addr1, addr2 } = await loadFixture(deployFixture);
 
     const mintPrice = await contractFighter.getMintPrice();
-    const token1 = await contractFighter.connect(addr1).mintNFT({value: mintPrice});
+    const token1 = 1; await contractFighter.connect(addr1).mintNFT({value: mintPrice});
 
-    await contractFighter.connect(addr2).getFighterData(token1.v);
-    await contractStatistics.connect(addr2).getStatistics(token1.v);
-    await contractAbility.connect(addr2).getAbilities(token1.v);
+    await contractFighter.connect(addr2).getFighterData(token1);
+    await contractStatistics.connect(addr2).getStatistics(token1);
+    await contractAbility.connect(addr2).getAbilities(token1);
 
   });
 
@@ -131,6 +131,16 @@ describe("Overall test", function () {
       .withArgs("0x0000000000000000000000000000000000000000", addr1.address, token2+1);
 
     // Should check that parents are burnt, and so on.
+
+  });
+
+  it("Should have proper abilities", async function () {
+    const { contractFighter, contractAbility, owner, addr1 } = await loadFixture(deployFixture);
+
+    const mintPrice = await contractFighter.getMintPrice();
+    const token1 = 1; await contractFighter.connect(addr1).mintNFT({value: mintPrice});
+
+    //console.log(await contractAbility.getAbilities(token1));
 
   });
 

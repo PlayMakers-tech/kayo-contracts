@@ -92,24 +92,28 @@ library KAYO {
   }
 
   // ABILITY
-	struct Ability {
-		uint64 id;
-		uint16 array;
-	}
-
-	function createAbilityInit(uint64 id) internal pure returns (Ability memory) {
-   	//uint r = random(id);
-   	return Ability({
-   		id:     id,
-   		array:   0
-   	});
+	function createAbilityInit(uint16[] storage arr) internal {
+   	arr.push(1);
+   	arr.push(2);
+   	arr.push(3);
+   	arr.push(4);
+   	arr.push(5);
+   	arr.push(6);
   }
-  function createAbilityFusion(uint64 id, Ability storage f, Ability storage m) internal view returns (Ability memory) {
-   	//uint r = random(id);
-   	return Ability({
-   		id:     id,
-   		array:   f.array + m.array
-   	});
+  function createAbilityFusion(uint16[] storage arr, uint16[] storage f, uint16[] storage m) internal {
+   	for(uint i=0; i < f.length; i++) {
+   		arr.push(f[i]);
+   	}
+   	for(uint i=0; i < m.length; i++) {
+   		bool nomatch = true;
+   		for(uint j=0; j < f.length; j++) {
+   			if(m[i]==f[j]) {
+   				nomatch = false;
+   				break;
+   			}
+   		}
+   		if(nomatch) arr.push(f[i]);
+   	}
   }
 
   // STATISTICS

@@ -11,7 +11,7 @@ contract Ability {
     address private _fighterContractAddress;
 
     // Abilities of a fighter given its id
-    mapping(uint64 => KAYO.Ability) private _abilityData;
+    mapping(uint64 => uint16[]) private _abilityData;
 
     // Data about the ability itself
     mapping(uint16 => uint64) private _abilityCount;
@@ -27,17 +27,17 @@ contract Ability {
         _fighterContractAddress = addr;
     }
 
-    function getAbilities(uint64 id) public view returns (KAYO.Ability memory) {
+    function getAbilities(uint64 id) public view returns (uint16[] memory) {
         return _abilityData[id];
     }
 
     function mintNFT(uint64 id) public {
         require(_fighterContractAddress == msg.sender);
-        _abilityData[id] = KAYO.createAbilityInit(id);
+         KAYO.createAbilityInit(_abilityData[id]);
     }
     function fusion(uint64 id, uint64 father, uint64 mother) public {
         require(_fighterContractAddress == msg.sender);
-        _abilityData[id] = KAYO.createAbilityFusion(id, _abilityData[father], _abilityData[mother]);
+        KAYO.createAbilityFusion(_abilityData[id], _abilityData[father], _abilityData[mother]);
     }
 
 
