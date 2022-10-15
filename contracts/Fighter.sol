@@ -24,6 +24,11 @@ contract Fighter is ERC721 {
     event List(uint64 id, uint256 price);
     event Unlist(uint64 id);
 
+    modifier ownerOnly() {
+        require(_owner == msg.sender, "You do not have permissions to do this");
+        _;
+    }
+
     constructor() ERC721("Fighter", "KAYO") {
         _owner = payable(msg.sender);
     }
@@ -45,37 +50,31 @@ contract Fighter is ERC721 {
     function getMintPrice() public view returns(uint256) {
         return mintPrice;
     }
-    function setMintPrice(uint256 value) public {
-        require(_owner == msg.sender, "You do not have permissions to do this");
+    function setMintPrice(uint256 value) ownerOnly public {
         mintPrice = value;
     }
 
     function getFusionPrice() public view returns(uint256) {
         return fusionPrice;
     }
-    function setFusionPrice(uint256 value) public {
-        require(_owner == msg.sender, "You do not have permissions to do this");
+    function setFusionPrice(uint256 value) ownerOnly public {
         fusionPrice = value;
     }
 
     function getListPrice() public view returns(uint256) {
         return listPrice;
     }
-    function setListPrice(uint256 value) public {
-        require(_owner == msg.sender, "You do not have permissions to do this");
+    function setListPrice(uint256 value) ownerOnly public {
         listPrice = value;
     }
 
-    function setFightContractAddress(address addr) public {
-        require(_owner == msg.sender, "You do not have permissions to do this");
+    function setFightContractAddress(address addr) ownerOnly public {
         _fightContractAddress = addr;
     }
-    function setStatisticsContract(address addr) public {
-        require(_owner == msg.sender, "You do not have permissions to do this");
+    function setStatisticsContract(address addr) ownerOnly public {
         _statisticsContract = Statistics(addr);
     }
-    function setAbilityContract(address addr) public {
-        require(_owner == msg.sender, "You do not have permissions to do this");
+    function setAbilityContract(address addr) ownerOnly public {
         _abilityContract = Ability(addr);
     }
 
