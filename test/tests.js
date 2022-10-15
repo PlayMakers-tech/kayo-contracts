@@ -138,9 +138,10 @@ describe("Overall test", function () {
     const { contractFighter, contractAbility, owner, addr1 } = await loadFixture(deployFixture);
 
     const mintPrice = await contractFighter.getMintPrice();
-    const token1 = 1; await contractFighter.connect(addr1).mintNFT({value: mintPrice});
-
-    //console.log(await contractAbility.getAbilities(token1));
+    for(let token=1; token <=1; token++) {
+      await contractFighter.connect(addr1).mintNFT({value: mintPrice});
+      //console.log(await contractAbility.getAbilities(token));
+    }
 
   });
 

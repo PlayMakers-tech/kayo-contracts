@@ -49,7 +49,7 @@ library KAYO {
    	});
   }
 
-  function random(uint64 add) private view returns (uint) {
+  function random(uint64 add) internal view returns (uint) {
     return uint(keccak256(abi.encodePacked(block.difficulty, block.timestamp, msg.sender, add)));
   }
 
@@ -92,14 +92,6 @@ library KAYO {
   }
 
   // ABILITY
-	function createAbilityInit(uint16[] storage arr) internal {
-   	arr.push(1);
-   	arr.push(2);
-   	arr.push(3);
-   	arr.push(4);
-   	arr.push(5);
-   	arr.push(6);
-  }
   function createAbilityFusion(uint16[] storage arr, uint16[] storage f, uint16[] storage m) internal {
    	for(uint i=0; i < f.length; i++) {
    		arr.push(f[i]);
