@@ -25,11 +25,13 @@ contract Ability {
     constructor() {
         _owner = payable(msg.sender);
         // Initial Ability rates and fill up
-        _probaRarity[2] = 20;
-        _probaRarity[3] = 4000;
+        _probaRarity[2] = 10;
+        _probaRarity[3] = 40;
+        _probaRarity[4] = 160;
         for(int i=0; i<10; i++) addAbility(1);
-        for(int i=0; i< 4; i++) addAbility(2);
-        for(int i=0; i< 2; i++) addAbility(3);
+        for(int i=0; i< 6; i++) addAbility(2);
+        for(int i=0; i< 4; i++) addAbility(3);
+        for(int i=0; i< 2; i++) addAbility(4);
     }
 
     function setFighterContractAddress(address addr) public {
@@ -82,14 +84,17 @@ contract Ability {
     // Internal functions    
     function learnAbility(uint64 id, uint16 aid) internal {
         uint8 rarity = _abilityRarity[aid];
-        require(rarity==1 || (rarity==2 && _abilityCount[aid]<5) || (rarity==3 && _abilityCount[aid]<1), "Rarity overload");
+        require( rarity==1 ||
+                (rarity==2 && _abilityCount[aid]<1000) ||
+                (rarity==3 && _abilityCount[aid]<100) ||
+                (rarity==4 && _abilityCount[aid]<1), "Rarity overload");
         for(uint i=0; i < _abilityData[id].length;i++) {
             require(_abilityData[id][i] != aid, "Can't grant a known ability");
         }
         _abilityData[id].push(aid);
         _abilityCount[aid]++;
         // Remove from the availability list if we reach the quota for the rarity
-        if(rarity==2 && _abilityCount[aid]==5 || rarity==3) {
+        if(rarity==2 && _abilityCount[aid]==1000 || rarity==3 && _abilityCount[aid]==100 || rarity==4) {
             uint l = _availablePerRarity[rarity].length;
             for(uint i=0; i < l-1;i++) {
                 if(_availablePerRarity[rarity][i] == aid) {
@@ -114,15 +119,16 @@ contract Ability {
         require(found, "Trying to forget an unknown ability");
         _abilityData[id].pop();
         uint8 rarity = _abilityRarity[aid];
-        if(rarity==2 && _abilityCount[aid]==5 || rarity==3) {
+        if(rarity==2 && _abilityCount[aid]==1000 || rarity==3 && _abilityCount[aid]==100 || rarity==4) {
             _availablePerRarity[rarity].push(aid);
         }
+        _abilityCount[aid]--;
     }
 
     function randAbility(uint64 id, uint r) internal view returns (uint16 aid) {
         r = KAYO.random(id+uint64(r));
         uint l;
-        for(uint8 rarity=3; rarity>1; rarity--) {
+        for(uint8 rarity=4; rarity>1; rarity--) {
             l = _availablePerRarity[rarity].length;
             if(l>0 && r%_probaRarity[rarity]==0) {
                 r = r/_probaRarity[rarity];
