@@ -145,4 +145,19 @@ describe("Overall test", function () {
 
   });
 
+  it("Should handle Level Ups", async function () {
+    const { contractFighter, contractStatistics, owner, addr1 } = await loadFixture(deployFixture);
+    
+    const mintPrice = await contractFighter.getMintPrice();
+    const token1 = 1; await contractFighter.connect(addr1).mintNFT({value: mintPrice});
+
+    await expect(contractStatistics.earnXP(token1, 15))
+      .to.emit(contractStatistics, "LevelUp")
+      .withArgs(token1, 1);
+    await expect(contractStatistics.earnXP(token1, 25))
+      .to.emit(contractStatistics, "LevelUp")
+      .withArgs(token1, 2);
+
+  });
+
 });
