@@ -161,23 +161,28 @@ library KAYO {
         y = z;
         z = (x/z + z)/2;
     }
-}
+	}
 
-  /*
-	// FIGHTER
+	// TOURNAMENT
 	struct Tournament {
 		uint64 id;
-		uint64[] fighter;
-		uint64[] fight;
-		// Rounds
-		uint8 roundCnt;
+		uint8 phase;
+		uint8 fight_ptr;
 		// Stake
 		uint8 stake;
 		uint256 price;
 		// Outcome and statistics
 		uint8 state;
-		uint8 result;
-		uint256 data;
-	}*/
+	}
+  function createTournament(uint64 id, uint8 stake, uint256 price) internal pure returns (Tournament memory) {   	
+   	return Tournament({
+   		id:     id,
+   		phase:  0,
+   		fight_ptr:  0,
+   		stake: stake,
+   		price:  price,
+   		state:  1
+   	});
+  }
 
 }

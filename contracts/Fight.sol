@@ -12,6 +12,7 @@ contract Fight {
     uint64 private _fightIds;
     uint64 private _roundIds;
     address payable private _owner;
+    address private _tournamentContractAddress;
     Fighter private _fighterContract;
     Statistics private _statisticsContract;
     uint256 private fightPrice = 0.001 ether;
@@ -35,6 +36,10 @@ contract Fight {
         return _fightIds;
     }
 
+    function setTournamentContractAddress(address addr) public {
+        require(msg.sender == _owner);
+        _tournamentContractAddress = addr;
+    }
     function setFighterContract(address addr) public {
         require(_owner == msg.sender);
         _fighterContract = Fighter(addr);
@@ -60,7 +65,7 @@ contract Fight {
     }
 
     function createFight(uint64 a, uint64 b, uint8 roundCnt, uint8 stake, uint256 price) public returns (uint64) {
-        require(_owner == msg.sender);
+        require(_owner == msg.sender || msg.sender == _tournamentContractAddress);
         KAYO.Fighter memory fa = _fighterContract.getFighterData(a);
         KAYO.Fighter memory fb = _fighterContract.getFighterData(b);
         require(!fa.listed&&fa.fight==0);
@@ -119,32 +124,24 @@ contract Fight {
                 Address.sendValue(fb.owner, f.price);
             }
         }
-        // Return the fighters
+        
+        _fighterContract.setFightState(f.a, 0, fa.booked, 0);
+        _fighterContract.setFightState(f.b, 0, fb.booked, 0);
+
+        // Reward the fighters if corresponding stake
         if(f.stake == 2) {
             if(f.result > 0) {
-                _fighterContract.transferForFight(true, fa.owner, fa.id);
-                _fighterContract.transferForFight(true, fa.owner, fb.id);
+                _fighterContract.transferTo(fa.owner, fb.id);
             }
             else if(f.result < 0) {
-                _fighterContract.transferForFight(true, fb.owner, fa.id);
-                _fighterContract.transferForFight(true, fb.owner, fb.id);
+                _fighterContract.transferTo(fb.owner, fa.id);
             }
-            else {
-                _fighterContract.transferForFight(true, fa.owner, fa.id);
-                _fighterContract.transferForFight(true, fb.owner, fb.id);
-            }
-        }
-        else {
-            _fighterContract.transferForFight(true, fa.owner, fa.id);
-            _fighterContract.transferForFight(true, fb.owner, fb.id);
         }
 
         // Earn XP
         _statisticsContract.earnXP(fa.id, f.result<0?1:uint8(f.result+2));
         _statisticsContract.earnXP(fb.id, f.result>0?1:uint8(-f.result+2));
 
-        _fighterContract.setFightState(f.a, 0, fa.booked, 0);
-        _fighterContract.setFightState(f.b, 0, fb.booked, 0);
         emit FightEnd(id, f.a, f.b, f.result);
     }
 
@@ -172,7 +169,6 @@ contract Fight {
             require(msg.value == fightPrice + 1.0 ether, "Required fight price + stake not met");
         }
 
-        _fighterContract.transferForFight(false, fa.owner, fa.id);
         _fighterContract.setFightState(tokenId, 0, 0, stake);
         emit LookFight(tokenId, stake);
     }
@@ -180,8 +176,7 @@ contract Fight {
 
     function cancelLookForFight(uint64 tokenId) public {
         KAYO.Fighter memory fa = _fighterContract.getFighterData(tokenId);
-        require(fa.owner == msg.sender 
-            && fa.queue > 0);
+        require(fa.owner == msg.sender && fa.queue > 0);
         // Unstake Ether values
         if(fa.queue == 4) {    
             Address.sendValue(fa.owner, 0.01 ether);
@@ -193,7 +188,6 @@ contract Fight {
             Address.sendValue(fa.owner, 1.0 ether);
         }
 
-        _fighterContract.transferForFight(true, fa.owner, fa.id);
         _fighterContract.setFightState(tokenId, 0, 0, 0);
         emit Unlook(tokenId,0);
     }

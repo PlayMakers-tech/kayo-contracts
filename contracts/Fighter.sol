@@ -13,6 +13,7 @@ contract Fighter is ERC721 {
     uint64 private _tokenIds;
     address payable private _owner;
     address private _fightContractAddress;
+    address private _tournamentContractAddress;
     Statistics private _statisticsContract;
     Ability private _abilityContract;
     uint256 private mintPrice    = 0.02  ether;
@@ -31,6 +32,15 @@ contract Fighter is ERC721 {
 
     constructor() ERC721("Fighter", "KAYO") {
         _owner = payable(msg.sender);
+    }
+
+    // Override function from OpenZeppelin to prevent transfer if Fighter is being used
+    function _beforeTokenTransfer(address, address, uint256 tokenId) internal view override {
+        KAYO.Fighter memory f = _fighterData[uint64(tokenId)];
+        require(f.listed == false , "The fighter is listed on the marketplace");
+        require(f.queue  == 0, "The fighter is already in a queue");
+        require(f.booked == 0, "The fighter is already booked");
+        require(f.fight  == 0, "The fighter is already in a fight");
     }
 
     function mintNFT() public payable returns (uint64) {
@@ -71,6 +81,9 @@ contract Fighter is ERC721 {
     function setFightContractAddress(address addr) ownerOnly public {
         _fightContractAddress = addr;
     }
+    function setTournamentContractAddress(address addr) ownerOnly public {
+        _tournamentContractAddress = addr;
+    }
     function setStatisticsContract(address addr) ownerOnly public {
         _statisticsContract = Statistics(addr);
     }
@@ -108,14 +121,12 @@ contract Fighter is ERC721 {
             && msg.value == listPrice);
         _fighterData[tokenId].listed = true;
         _fighterData[tokenId].price = price;
-        _transfer(msg.sender, address(this), tokenId);
         emit List(tokenId, price);
     }
     function cancelListToken(uint64 tokenId) public payable {
         require(_fighterData[tokenId].owner == msg.sender 
             && _fighterData[tokenId].listed == true);
         _fighterData[tokenId].listed = false;
-        _transfer(address(this), msg.sender, tokenId);
         emit Unlist(tokenId);
     }
     
@@ -123,24 +134,20 @@ contract Fighter is ERC721 {
         uint256 price = _fighterData[tokenId].price;
         require(_fighterData[tokenId].listed == true && msg.value == price);    
         _fighterData[tokenId].listed = false;
-        _transfer(address(this), msg.sender, tokenId);    
+        _transfer(_fighterData[tokenId].owner, msg.sender, tokenId);    
         Address.sendValue(_fighterData[tokenId].owner, price);
         _fighterData[tokenId].owner = payable(msg.sender);
         emit Unlist(tokenId);
     }
 
-    function transferForFight(bool goBack, address owner, uint64 tokenId) public {
-        require(msg.sender == _fightContractAddress);
-        if(goBack) {
-            _transfer(address(this), owner, tokenId);
-            _fighterData[tokenId].owner = payable(owner);
-        }
-        else {
-            _transfer(owner, address(this), tokenId);
-        }
+    function transferTo(address owner, uint64 tokenId) public {
+        require(msg.sender == _fightContractAddress || msg.sender == _tournamentContractAddress);
+        _transfer(_fighterData[tokenId].owner, owner, tokenId);
+        _fighterData[tokenId].owner = payable(owner);
     }
+
     function setFightState(uint64 tokenId, uint64 fight, uint64 booked, uint8 queue) public {
-        require(msg.sender == _fightContractAddress);
+        require(msg.sender == _fightContractAddress || msg.sender == _tournamentContractAddress);
         _fighterData[tokenId].fight  = fight;
         _fighterData[tokenId].booked = booked;
         _fighterData[tokenId].queue  = queue;

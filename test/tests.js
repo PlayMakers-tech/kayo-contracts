@@ -11,11 +11,15 @@ describe("Overall test", function () {
     const Fight      = await ethers.getContractFactory("Fight");
     const Statistics = await ethers.getContractFactory("Statistics");
     const Ability    = await ethers.getContractFactory("Ability");
+    const Tournament = await ethers.getContractFactory("Tournament");
     const contractFighter    = await Fighter.deploy();
     const contractFight      = await Fight.deploy();
     const contractStatistics = await Statistics.deploy();
     const contractAbility    = await Ability.deploy();
+    const contractTournament = await Tournament.deploy();
     await contractFighter.setFightContractAddress(contractFight.address);
+    await contractFighter.setTournamentContractAddress(contractTournament.address);
+    await contractFight.setTournamentContractAddress(contractTournament.address);
     await contractStatistics.setFighterContractAddress(contractFighter.address);
     await contractStatistics.setFightContractAddress(contractFight.address);
     await contractAbility.setFighterContractAddress(contractFighter.address);  
@@ -23,8 +27,10 @@ describe("Overall test", function () {
     await contractFighter.setAbilityContract(contractAbility.address);
     await contractFight.setFighterContract(contractFighter.address);
     await contractFight.setStatisticsContract(contractStatistics.address);
+    await contractTournament.setFighterContract(contractFighter.address);
+    await contractTournament.setFightContract(contractFight.address);
 
-    return {contractFighter, contractFight, contractStatistics, contractAbility, owner, addr1, addr2};
+    return {contractFighter, contractFight, contractStatistics, contractAbility, owner, addr1, addr2, contractTournament};
   }
 
 
@@ -103,14 +109,12 @@ describe("Overall test", function () {
     // List the token on the marketplace
     const myPrice = 1000000;
     const listPrice = await contractFighter.getListPrice();
-    await expect(contractFighter.connect(addr1).listToken(token1, myPrice, {value: listPrice}))
-      .to.emit(contractFighter, "Transfer")
-      .withArgs(addr1.address, contractFighter.address, token1);
+    await contractFighter.connect(addr1).listToken(token1, myPrice, {value: listPrice});
 
     // Buy it and check that the transfer takes place
     await expect(contractFighter.connect(addr2).buyToken(token1, {value: myPrice}))
       .to.emit(contractFighter, "Transfer")
-      .withArgs(contractFighter.address, addr2.address, token1);
+      .withArgs(addr1.address, addr2.address, token1);
 
     // We should check that the owner is set properly
     // ...
@@ -157,6 +161,57 @@ describe("Overall test", function () {
     await expect(contractStatistics.earnXP(token1, 25))
       .to.emit(contractStatistics, "LevelUp")
       .withArgs(token1, 2);
+
+  });
+
+  it("Should handle tournament", async function () {
+    const { contractFighter, contractFight, contractTournament, owner, addr1 } = await loadFixture(deployFixture);
+    
+    const mintPrice = await contractFighter.getMintPrice();
+    const tournamentPrice = await contractTournament.getTournamentPrice();
+    for(let token=1; token <=4; token++) {
+      await contractFighter.connect(addr1).mintNFT({value: mintPrice});
+    }
+
+    // Create tournament
+    const timestamp = 20221225;
+    const tournamentId = 1;
+    await expect(contractTournament.createTournament(1,0,timestamp))
+      .to.emit(contractTournament, "TournamentNew")
+      .withArgs(tournamentId, timestamp);
+
+    // Have the 4 tokens join the tournament
+    for(let token=1; token <=4; token++) {
+      await expect(contractTournament.connect(addr1).joinTournament(tournamentId, token, {value: tournamentPrice}))
+      .to.emit(contractTournament, "TournamentJoin")
+      .withArgs(tournamentId, token);
+    }
+
+    // Generate the tournament tree
+    await contractTournament.generateTree(tournamentId);
+
+    // Compute first phase (2 fights)
+    await expect(contractTournament.nextPhase(tournamentId))
+      .to.emit(contractFight, "FightNew");
+    for(let fight = 1; fight <= 2; fight++) {
+      for(let round = 1; round <= 3; round++) {
+        await contractFight.resolveRound(fight, round, 1, "tournament");
+      }
+    }
+
+    // Compute second phase (1 fight)
+    await expect(contractTournament.nextPhase(tournamentId))
+      .to.emit(contractTournament, "TournamentNextPhase")
+      .withArgs(tournamentId,2);
+    for(let fight = 3; fight <= 3; fight++) {
+      for(let round = 1; round <= 3; round++) {
+        await contractFight.resolveRound(fight, round, 1, "tournament");
+      }
+    }
+
+    // Announce winner
+    await expect(contractTournament.nextPhase(tournamentId))
+      .to.emit(contractTournament, "TournamentWin");
 
   });
 
