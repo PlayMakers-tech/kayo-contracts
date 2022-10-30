@@ -120,6 +120,27 @@ describe("Overall test", function () {
     // ...
   });
 
+  it("Should prevent transfers", async function () {
+    const { contractFighter, contractFight, owner, addr1, addr2 } = await loadFixture(deployFixture);
+
+    // Mint the tokens
+    const mintPrice = await contractFighter.getMintPrice();
+    const token1 = 1; await contractFighter.connect(addr1).mintNFT({value: mintPrice});
+
+    const fightPrice = await contractFight.getFightPrice();
+    await contractFight.connect(addr1).lookForFight(token1, 1, {value:fightPrice});
+    // Attempt to transfer
+    await expect(contractFighter.connect(addr1).transferFrom(addr1.address, addr2.address, token1))
+      .to.be.revertedWith("The fighter is already in a queue");
+
+    await contractFight.connect(addr1).cancelLookForFight(token1);
+    // However, authorize transfers if available
+    await expect(contractFighter.connect(addr1).transferFrom(addr1.address, addr2.address, token1))
+      .to.emit(contractFighter, "Transfer")
+      .withArgs(addr1.address, addr2.address, token1);
+
+  });
+
   it("Should fuse", async function () {
     const { contractFighter, owner, addr1 } = await loadFixture(deployFixture);
 
