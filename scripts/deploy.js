@@ -1,51 +1,45 @@
-async function main() {
-  // Grab the contract factory 
-  const Fighter    = await ethers.getContractFactory("Fighter");
-  const Fight      = await ethers.getContractFactory("Fight");
-  const Statistics = await ethers.getContractFactory("Statistics");
-  const Ability    = await ethers.getContractFactory("Ability");
-  const Tournament = await ethers.getContractFactory("Tournament");
+const fs = require('fs/promises');
 
-  // Start deployment, returning a promise that resolves to a contract object
-  console.log("Deploying Fighter Contract...");
-  const contractFighter = await Fighter.deploy(); // Instance of the contract
-  console.log("Deployed Fighter Contract");
-  console.log("Deploying Fight Contract...");
-  const contractFight   = await Fight.deploy();
-  console.log("Deployed Fight Contract");
-  console.log("Deploying Statistics Contract...");
-  const contractStatistics = await Statistics.deploy();
-  console.log("Deployed Statistics Contract");
-  console.log("Deploying Ability Contract...");
-  const contractAbility = await Ability.deploy();
-  console.log("Deployed Ability Contract");
-  console.log("Deploying Tournament Contract...");
-  const contractTournament = await Tournament.deploy();
-  console.log("Deployed Tournament Contract");
+async function main() {
+
+  const contracts = {};
+  const contractNames = ["Fighter", "Fight", "Statistics", "Ability", "Tournament"];
+
+  // Deploy the contracts
+  for(const contract of contractNames) {
+    const factory = await ethers.getContractFactory(contract);
+    console.log("Deploying ", contract, " Contract...");
+    contracts[contract] = await factory.deploy();
+    console.log("Deployed  ", contract, " Contract...");
+  }
   // Delay to avoid timing issue
   await new Promise(r => setTimeout(r, 15000));
+
+  // Add links between the contracts
   console.log("Configure links...");
   // Set simple addresses
-  await contractFighter.setFightContractAddress(contractFight.address);
-  await contractFighter.setTournamentContractAddress(contractTournament.address);
-  await contractFight.setTournamentContractAddress(contractTournament.address);
-  await contractStatistics.setFighterContractAddress(contractFighter.address);
-  await contractStatistics.setFightContractAddress(contractFight.address);
-  await contractAbility.setFighterContractAddress(contractFighter.address);  
+  await contracts["Fighter"].setFightContractAddress(contracts["Fight"].address);
+  await contracts["Fighter"].setTournamentContractAddress(contracts["Tournament"].address);
+  await contracts["Fight"].setTournamentContractAddress(contracts["Tournament"].address);
+  await contracts["Statistics"].setFighterContractAddress(contracts["Fighter"].address);
+  await contracts["Statistics"].setFightContractAddress(contracts["Fight"].address);
+  await contracts["Ability"].setFighterContractAddress(contracts["Fighter"].address);  
   // Set contract objects
-  await contractFighter.setStatisticsContract(contractStatistics.address);
-  await contractFighter.setAbilityContract(contractAbility.address);
-  await contractFight.setFighterContract(contractFighter.address);
-  await contractFight.setStatisticsContract(contractStatistics.address);
-  await contractTournament.setFighterContract(contractFighter.address);
-  await contractTournament.setFightContract(contractFight.address);
+  await contracts["Fighter"].setStatisticsContract(contracts["Statistics"].address);
+  await contracts["Fighter"].setAbilityContract(contracts["Ability"].address);
+  await contracts["Fight"].setFighterContract(contracts["Fighter"].address);
+  await contracts["Fight"].setStatisticsContract(contracts["Statistics"].address);
+  await contracts["Tournament"].setFighterContract(contracts["Fighter"].address);
+  await contracts["Tournament"].setFightContract(contracts["Fight"].address);
   console.log("Configured links");
 
-  console.log("Fighter    Contract deployed to address:", contractFighter.address);
-  console.log("Fight      Contract deployed to address:", contractFight.address);
-  console.log("Statistics Contract deployed to address:", contractStatistics.address);
-  console.log("Ability    Contract deployed to address:", contractAbility.address);
-  console.log("Tournament Contract deployed to address:", contractTournament.address);
+  // Reporting address on screen and in file (to be redistributed to other repositories)
+  let str = "";
+  for(const contract of contractNames) {
+    console.log(contract.padEnd(10), " Contract deployed to address:", contracts[contract].address);
+    str += contract + "," + contracts[contract].address + "\n";
+  }
+  await fs.writeFile("./deployedAddresses.csv", str);
 }
 
 main()
@@ -53,4 +47,4 @@ main()
     .catch(error => {
         console.error(error);
         process.exit(1);
-})
+});

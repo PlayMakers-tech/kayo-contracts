@@ -133,3 +133,5 @@ dist
 artifacts/
 cache/
 .solhint.json
+.jshintrc
+deployedAddresses.csv
