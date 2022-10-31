@@ -168,20 +168,22 @@ library KAYO {
 		uint64 id;
 		uint8 phase;
 		uint8 fight_ptr;
+		uint64 start_time;
 		// Stake
 		uint8 stake;
 		uint256 price;
 		// Outcome and statistics
 		uint8 state;
 	}
-  function createTournament(uint64 id, uint8 stake, uint256 price) internal pure returns (Tournament memory) {   	
+  function createTournament(uint64 id, uint8 stake, uint256 price, uint64 start_time) internal pure returns (Tournament memory) {   	
    	return Tournament({
-   		id:     id,
-   		phase:  0,
+   		id:         id,
+   		phase:      0,
    		fight_ptr:  0,
-   		stake: stake,
-   		price:  price,
-   		state:  1
+   		start_time: start_time,
+   		stake:      stake,
+   		price:      price,
+   		state:      1
    	});
   }
 

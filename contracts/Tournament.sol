@@ -14,6 +14,7 @@ contract Tournament {
     Fighter private _fighterContract;
     Fight   private _fightContract;
     uint256 private tournamentPrice = 0.001 ether;
+    uint64[] private _activeTournaments;
 
     mapping(uint64 => KAYO.Tournament) private _tournamentData;
 
@@ -23,6 +24,7 @@ contract Tournament {
     mapping(uint64 => uint8[]) private _scores;
 
     event TournamentNew(uint64 id, uint64 start_time);
+    event TournamentCancel(uint64 id);
     event TournamentReady(uint64 id);
     event TournamentJoin(uint64 id, uint64 fighterId);
     event TournamentNextPhase(uint64 id, uint8 phase);
@@ -64,11 +66,42 @@ contract Tournament {
         return _scores[id];
     }
 
+    function getActiveTournaments() public view returns (uint64[] memory) {
+        return _activeTournaments;
+    }
+    function getOpenTournaments() public view returns (uint64[] memory) {
+        uint l = _activeTournaments.length;
+        uint64[] memory open  = new uint64[](l);
+        uint n = 0;
+        for(uint i=0; i < l;i++) {
+          if(_tournamentData[_activeTournaments[i]].state == 1) {
+            open[n++] = _activeTournaments[i];
+          }
+        }
+        return open;
+    }
+
     function createTournament(uint8 stake, uint256 price, uint64 start_time) public returns (uint64) {
         require(msg.sender == _owner);
-        _tournamentData[_tournamentIds] = KAYO.createTournament(++_tournamentIds, stake, price);
+        _tournamentData[_tournamentIds] = KAYO.createTournament(++_tournamentIds, stake, price, start_time);
         emit TournamentNew(_tournamentIds, start_time);
+        _activeTournaments.push(_tournamentIds);
         return _tournamentIds;
+    }
+
+    function cancelTournament(uint64 id) public {
+        require(msg.sender == _owner);
+        KAYO.Tournament storage t = _tournamentData[id];
+        require(t.state == 1, "Can only cancel while the tournament is open");
+        t.state = 0;
+        for(uint64 i=0; i < _fighters[id].length;i++) {
+            _fighterContract.setFightState(_fighters[id][i], 0, 0, 0);
+            // TODO TournamentPrice is already gone, so there is a problem here
+            //KAYO.Fighter memory f = _fighterContract.getFighterData(_fighters[id][i]);
+            //Address.sendValue(f.owner, tournamentPrice + t.price);
+        }
+        removeFromActive(id);
+        emit TournamentCancel(id);
     }
 
     function joinTournament(uint64 id, uint64 fighterId) public payable {
@@ -103,7 +136,7 @@ contract Tournament {
     emit TournamentReady(id);
   }
 
-  function nextPhase(uint64 id) public {
+  function nextPhase(uint64 id) public returns (bool) {
     require(_owner == msg.sender);
     KAYO.Tournament storage t = _tournamentData[id];
     require(t.state == 2);
@@ -144,9 +177,23 @@ contract Tournament {
         for(uint64 i=0; i < _fighters[id].length;i++) {
             _fighterContract.setFightState(_fighters[id][i], 0, 0, 0); // Disable the booked flag
         }
+        removeFromActive(id);
     }
     else {
         emit TournamentNextPhase(id, t.phase);
+    }
+    return no_more_fight;
+  }
+
+
+  function removeFromActive(uint64 id) internal {
+    uint l = _activeTournaments.length;
+    for(uint i=0; i < l;i++) {
+      if(_activeTournaments[i] == id) {
+        _activeTournaments[i] = _activeTournaments[l-1];
+        _activeTournaments.pop();
+        break;
+      }
     }
   }
 }
