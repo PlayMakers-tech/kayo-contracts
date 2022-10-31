@@ -88,7 +88,9 @@ describe("Overall test", function () {
     // Resolve the fight
     await contractFight.resolveRound(fightId, 1, 1, "ThisIsEncodedMovesFromServer");
     await contractFight.resolveRound(fightId, 2, 1, "ThisIsEncodedMovesFromServer");
-    await contractFight.resolveRound(fightId, 3, 1, "ThisIsEncodedMovesFromServer");
+    await expect(contractFight.resolveRound(fightId, 3, 1, "ThisIsEncodedMovesFromServer"))
+      .to.emit(contractFight, "FightEnd")
+      .withArgs(fightId,token1,token2,3);
     
     // Could check that the fight went through successfully
     //console.log(await contractFight.getFightData(fightId));
