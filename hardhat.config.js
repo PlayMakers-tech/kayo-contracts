@@ -1,8 +1,8 @@
 /** @type import('hardhat/config').HardhatUserConfig */
 require('dotenv').config();
 require("@nomiclabs/hardhat-ethers");
-require("@nomicfoundation/hardhat-chai-matchers")
-require("hardhat-contract-sizer")
+require("@nomicfoundation/hardhat-chai-matchers");
+require("hardhat-contract-sizer");
 const { API_URL, PRIVATE_KEY } = process.env;
 module.exports = {
    solidity: "0.8.9",
@@ -14,6 +14,10 @@ module.exports = {
       goerli: {
          url: API_URL,
          accounts: [`0x${PRIVATE_KEY}`]
+      },
+      matic: {
+         url: "https://rpc-mumbai.maticvigil.com",
+         accounts: [`0x${PRIVATE_KEY}`]
       }
    },
-}
+};
