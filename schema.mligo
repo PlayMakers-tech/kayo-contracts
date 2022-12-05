@@ -1,0 +1,5 @@
+#include "fighter.schema.mligo"
+#include "fight.schema.mligo"
+#include "tournament.schema.mligo"
+#include "attribute.schema.mligo"
+#include "ability.schema.mligo"
