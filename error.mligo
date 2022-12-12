@@ -17,7 +17,7 @@ module ERROR =
 	let price         = "Missing expected price value"
 
 	let rights_admin  = "Missing admin rights"
-	let rights_other  = "Missing adming or contract rights"
+	let rights_other  = "Missing admin or contract rights"
 	let rights_owner  = "Missing owner rights"
 
 	let rarity_overload = "Rarity overload"
