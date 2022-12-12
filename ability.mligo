@@ -76,7 +76,7 @@ let rec _select_rand_ability (rl, fid, d: rarity list * fighter_id * ability_sto
 	| _ -> failwith ERROR.no_ability_left
 
 let _learn_rand_ability (fid, d: fighter_id * ability_storage) =
-	let rl : rarity list = [UNIQUE; MYTHIC; LEGENDARY; RARE; UNCOMMON; COMMON] in 
+	let rl : rarity list = [Unique; Mythic; Legendary; Rare; Uncommon; Common] in 
 	let aid : ability_id = _select_rand_ability (rl, fid, d) in
 	_learn_ability (fid, aid, d)
 

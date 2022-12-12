@@ -31,7 +31,8 @@ let test =
         attribute_addr = dummy_address;
         ability_addr = dummy_address;
         admin = (admin_address : address);
-        fighters = Big_map.empty
+        fighters = Big_map.empty;
+        fighters_by_owner = Big_map.empty
     } in
     let fighter_addr, _, _ = Test.originate_from_file "fighter.mligo" "main" [] (Test.eval init_store) 0tez in
     let fighter_typed_addr: (fighter_parameter, fighter_storage) typed_address = Test.cast_address fighter_addr in
@@ -47,7 +48,8 @@ let test =
 	    attribute_addr = dummy_address;
 	    admin = (admin_address: address);
 	    fights = Big_map.empty;
-	    rounds = Big_map.empty
+        rounds = Big_map.empty;
+        queues = Big_map.empty
 	} in
     let fight_addr, _, _ = Test.originate_from_file "fight.mligo" "main" [] (Test.eval init_store) 0tez in
     let fight_typed_addr: (fight_parameter, fight_storage) typed_address = Test.cast_address fight_addr in
@@ -59,30 +61,30 @@ let test =
 	    fighter_addr = (fighter_addr: address);
         admin = (admin_address : address);
 	    available_abilities = Big_map.literal [
-	        (COMMON,    (Set.empty: ability_id set));
-	        (UNCOMMON,  (Set.empty: ability_id set));
-	        (RARE,      (Set.empty: ability_id set));
-	        (LEGENDARY, (Set.empty: ability_id set));
-	        (MYTHIC,    (Set.empty: ability_id set));
-	        (UNIQUE,    (Set.empty: ability_id set))
+	        (Common,    (Set.empty: ability_id set));
+	        (Uncommon,  (Set.empty: ability_id set));
+	        (Rare,      (Set.empty: ability_id set));
+	        (Legendary, (Set.empty: ability_id set));
+	        (Mythic,    (Set.empty: ability_id set));
+	        (Unique,    (Set.empty: ability_id set))
 	    ];
 	    fighter_abilities = Big_map.empty;
 	    abilities = Big_map.empty;
 	    proba_rarity = Map.literal [
-	        (COMMON,       1n);
-	        (UNCOMMON,     0n);
-	        (RARE,        10n);
-	        (LEGENDARY,   40n);
-	        (MYTHIC,       0n);
-	        (UNIQUE,     160n)
+	        (Common,       1n);
+	        (Uncommon,     0n);
+	        (Rare,        10n);
+	        (Legendary,   40n);
+	        (Mythic,       0n);
+	        (Unique,     160n)
 	    ];
 	    amount_rarity = Map.literal [
-	        (COMMON,       0n);
-	        (UNCOMMON,     0n);
-	        (RARE,      1000n);
-	        (LEGENDARY,  100n);
-	        (MYTHIC,       0n);
-	        (UNIQUE,       1n)
+	        (Common,       0n);
+	        (Uncommon,     0n);
+	        (Rare,      1000n);
+	        (Legendary,  100n);
+	        (Mythic,       0n);
+	        (Unique,       1n)
 	    ]
 	} in
     let ability_addr, _, _ = Test.originate_from_file "ability.mligo" "main" [] (Test.eval init_store) 0tez in
@@ -144,10 +146,10 @@ let test =
 
     // Create abilities
     let rl : rarity list =
-    	[COMMON;COMMON;COMMON;COMMON;COMMON;COMMON;COMMON;COMMON;COMMON;COMMON;
-		 RARE;RARE;RARE;RARE;RARE;
-		 LEGENDARY;LEGENDARY;LEGENDARY;
-		 UNIQUE] in
+    	[Common;Common;Common;Common;Common;Common;Common;Common;Common;Common;
+		 Rare;Rare;Rare;Rare;Rare;
+		 Legendary;Legendary;Legendary;
+		 Unique] in
     let _ = 
         (match Test.transfer_to_contract ability_contract (CreateAbility rl) 0tez with
         | Success _ -> true
@@ -185,13 +187,17 @@ let test =
     // Add to queue
     let _ = Test.set_source alice_address in
     let _ = 
-        (match Test.transfer_to_contract fight_contract (AddToQueue (alice_token,NoStake)) fight_fee with
+        (match Test.transfer_to_contract fight_contract (AddToQueue (alice_token,NoStakeQ)) fight_fee with
         | Success _ -> true
         | Fail err -> Test.failwith err )
         |> Test.assert 
     in
+    let _ = Test.println "Probing Alice in her queue" in
+    let _ = dump alice_token in
+    let _ = Test.println "" in
+
     let _ = Test.set_source bob_address in
-    let _ = Test.transfer_to_contract fight_contract (AddToQueue (bob_token,NoStake)) fight_fee in
+    let _ = Test.transfer_to_contract fight_contract (AddToQueue (bob_token,NoStakeQ)) fight_fee in
 
     // Create Fight
     let _ = Test.set_source admin_address in

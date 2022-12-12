@@ -3,9 +3,9 @@
 
 type fight_queue =
 | NotQueuing
-| NoStake
-| FighterStake
-| TezStake of tez
+| NoStakeQ
+| FighterStakeQ
+| TezStakeQ of tez
 
 type fight_stake =
 | NoStake
@@ -51,7 +51,8 @@ type fight_storage = {
     attribute_addr: address;
     admin: address;
     fights: (fight_id, fight_data) big_map;
-    rounds: (round_id, round_data) big_map
+    rounds: (round_id, round_data) big_map;
+    queues: (fight_queue, fighter_id set) big_map
 }
 
 type fight_parameter =

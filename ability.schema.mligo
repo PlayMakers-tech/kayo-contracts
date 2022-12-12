@@ -4,12 +4,12 @@
 type ability_id = nat
 
 type rarity =
-| COMMON
-| UNCOMMON
-| RARE
-| LEGENDARY
-| MYTHIC
-| UNIQUE
+| Common
+| Uncommon
+| Rare
+| Legendary
+| Mythic
+| Unique
 
 type ability_data = {
     id: ability_id;

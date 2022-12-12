@@ -4,29 +4,29 @@ let init_store: ability_storage = {
     fighter_addr = ("tz3QE72w1vC613ZaeAZwW5fxwrBUQAstyaZy": address);
     admin = ("tz3QE72w1vC613ZaeAZwW5fxwrBUQAstyaZy": address);
     available_abilities = Big_map.literal [
-        (COMMON,    (Set.empty: ability_id set));
-        (UNCOMMON,  (Set.empty: ability_id set));
-        (RARE,      (Set.empty: ability_id set));
-        (LEGENDARY, (Set.empty: ability_id set));
-        (MYTHIC,    (Set.empty: ability_id set));
-        (UNIQUE,    (Set.empty: ability_id set))
+        (Common,    (Set.empty: ability_id set));
+        (Uncommon,  (Set.empty: ability_id set));
+        (Rare,      (Set.empty: ability_id set));
+        (Legendary, (Set.empty: ability_id set));
+        (Mythic,    (Set.empty: ability_id set));
+        (Unique,    (Set.empty: ability_id set))
     ];
     fighter_abilities = Big_map.empty;
     abilities = Big_map.empty;
     proba_rarity = Map.literal [
-        (COMMON,       1n);
-        (UNCOMMON,     0n);
-        (RARE,        10n);
-        (LEGENDARY,   40n);
-        (MYTHIC,       0n);
-        (UNIQUE,     160n)
+        (Common,       1n);
+        (Uncommon,     0n);
+        (Rare,        10n);
+        (Legendary,   40n);
+        (Mythic,       0n);
+        (Unique,     160n)
     ];
     amount_rarity = Map.literal [
-        (COMMON,       0n);
-        (UNCOMMON,     0n);
-        (RARE,      1000n);
-        (LEGENDARY,  100n);
-        (MYTHIC,       0n);
-        (UNIQUE,       1n)
+        (Common,       0n);
+        (Uncommon,     0n);
+        (Rare,      1000n);
+        (Legendary,  100n);
+        (Mythic,       0n);
+        (Unique,       1n)
     ]
 }

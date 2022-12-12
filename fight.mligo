@@ -12,6 +12,10 @@ let _get_fight_data (id, d: fight_id * fight_storage) =
     Option.unopt_with_error (Big_map.find_opt id d.fights) "Invalid fight_id"
 let _get_round_data (id, d: round_id * fight_storage) =
     Option.unopt_with_error (Big_map.find_opt id d.rounds) "Invalid round_id"
+let _get_fighters_in_queue (q, d: fight_queue * fight_storage): fighter_id set =
+    match (Big_map.find_opt q d.queues) with
+    | Some x -> x
+    | None -> Set.empty
 
 
 let _resolve_fight (id, d: fight_id * fight_storage) =
@@ -123,27 +127,31 @@ let add_to_queue (a, queue, d: fighter_id * fight_queue * fight_storage) =
     if Tezos.get_sender () <> fa.owner
     then failwith ERROR.rights_owner
     else let _ = (match queue with
-    	| NoStake -> if Tezos.get_amount () <> d.fight_fee then failwith ERROR.fee
-    	| FighterStake -> if Tezos.get_amount () <> d.fight_fee then failwith ERROR.fee
-    	| TezStake v -> if Tezos.get_amount () <> (d.fight_fee + v) then failwith ERROR.stake
-    	| _ -> failwith ERROR.invalid_queue
+    	| NoStakeQ -> if Tezos.get_amount () <> d.fight_fee then failwith ERROR.fee
+    	| FighterStakeQ -> if Tezos.get_amount () <> d.fight_fee then failwith ERROR.fee
+    	| TezStakeQ v -> if Tezos.get_amount () <> (d.fight_fee + v) then failwith ERROR.stake
+        | _ -> failwith ERROR.invalid_queue
     ) in
     if fa.listed || fa.queue <> NotQueuing || fa.tournament <> 0n || fa.fight <> 0n
     then failwith ERROR.occupied
-	else [Tezos.transaction (SetFighterState (a,0n,0n,queue)) 0tez (Tezos.get_contract d.fighter_addr)],d
+	else let queue_set = _get_fighters_in_queue (queue,d) in
+    [Tezos.transaction (SetFighterState (a,0n,0n,queue)) 0tez (Tezos.get_contract d.fighter_addr)],
+    { d with queues = Big_map.update queue (Some (Set.add a queue_set)) d.queues }
 
 let cancel_queue (a, d: fighter_id * fight_storage) =
 	let fa = _get_fighter_data (a,d) in
     if Tezos.get_sender () <> fa.owner
     then failwith ERROR.rights_owner
-	else match fa.queue with
+	else let op = (match fa.queue with
 		| NotQueuing -> failwith ERROR.not_in_queue
-		| NoStake -> [Tezos.transaction (SetFighterState (a,0n,0n,NotQueuing)) 0tez (Tezos.get_contract d.fighter_addr)],d	
-		| FighterStake -> [Tezos.transaction (SetFighterState (a,0n,0n,NotQueuing)) 0tez (Tezos.get_contract d.fighter_addr)],d	
-    	| TezStake v -> [
+		| NoStakeQ -> [Tezos.transaction (SetFighterState (a,0n,0n,NotQueuing)) 0tez (Tezos.get_contract d.fighter_addr)]	
+		| FighterStakeQ -> [Tezos.transaction (SetFighterState (a,0n,0n,NotQueuing)) 0tez (Tezos.get_contract d.fighter_addr)]	
+    	| TezStakeQ v -> [
     		Tezos.transaction (SetFighterState (a,0n,0n,NotQueuing)) 0tez (Tezos.get_contract d.fighter_addr);
     		Tezos.transaction unit v (Tezos.get_contract fa.owner)
-    		],d	
+    		]) in
+    let queue_set = _get_fighters_in_queue (fa.queue,d) in
+    op, { d with queues = Big_map.update fa.queue (Some (Set.remove a queue_set)) d.queues }
 
 let main (action, d: fight_parameter * fight_storage) = 
     ( match action with
@@ -163,6 +171,7 @@ let main (action, d: fight_parameter * fight_storage) =
 
 [@view] let get_fight_data = _get_fight_data
 [@view] let get_round_data = _get_round_data
+[@view] let get_fighters_in_queue = _get_fighters_in_queue
 [@view] let get_fees (_,d: unit * fight_storage) = {
     fight = d.fight_fee
 }

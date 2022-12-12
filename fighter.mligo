@@ -5,6 +5,13 @@
 
 let _admin_only (d: fighter_storage) =
     if Tezos.get_sender () <> d.admin then failwith ERROR.rights_admin
+let _get_fighter_data (id, d: fighter_id * fighter_storage) =
+    Option.unopt_with_error (Big_map.find_opt id d.fighters) "Invalid fighter_id"
+let _get_fighters_by_owner (owner, d: address * fighter_storage) : fighter_id set =
+    match (Big_map.find_opt owner d.fighters_by_owner) with
+    | Some x -> x
+    | None -> Set.empty
+
 
 let beforeTransfer (f: fighter_data) =
     if      f.listed=true       then failwith ERROR.listed
@@ -29,11 +36,15 @@ let new_fighter (id, owner: fighter_id * address) =
 let mint (d : fighter_storage) =
     if Tezos.get_amount () <> d.mint_fee then failwith ERROR.fee
     else
+    let owner = Tezos.get_sender () in
+    let set = Set.add d.next_id (_get_fighters_by_owner (owner, d)) in
+    let fbo = Big_map.update owner (Some set) d.fighters_by_owner in
     [Tezos.transaction ((Mint d.next_id):attribute_parameter) 0tez (Tezos.get_contract d.attribute_addr);
      Tezos.transaction ((Mint d.next_id):ability_parameter) 0tez (Tezos.get_contract d.ability_addr)],
     { d with
         next_id = d.next_id + 1n;
-        fighters = Big_map.add d.next_id (new_fighter (d.next_id, Tezos.get_sender ())) d.fighters
+        fighters = Big_map.add d.next_id (new_fighter (d.next_id, owner)) d.fighters;
+        fighters_by_owner = fbo;
     }
 
 let set_mint_fee (v, d : tez * fighter_storage) =
@@ -57,9 +68,6 @@ let set_attribute_addr (addr, d : address * fighter_storage) =
 let set_ability_addr (addr, d : address * fighter_storage) =
     let _ = _admin_only d in
     [], {d with ability_addr = addr}
-
-let _get_fighter_data (id, d: fighter_id * fighter_storage) =
-    Option.unopt_with_error (Big_map.find_opt id d.fighters) "Invalid fighter_id"
 
 let set_fighter_state (id,fight,tournament,queue,d:
         fighter_id * fight_id * tournament_id * fight_queue * fighter_storage) =
@@ -90,8 +98,13 @@ let transfer (id, addr, d: fighter_id * address * fighter_storage) =
     then failwith ERROR.rights_owner
     else
     let _ = beforeTransfer f in 
+    let set = Set.add id (_get_fighters_by_owner (f.owner, d)) in
+    let fbo = Big_map.update addr (Some set) d.fighters_by_owner in
+    let old = Set.remove id (_get_fighters_by_owner (f.owner, d)) in
+    let fbo = Big_map.update f.owner (if (Set.cardinal old) = 0n then None else Some old) fbo in
     [], { d with
-            fighters = Big_map.update id (Some {f with owner = addr}) d.fighters
+            fighters = Big_map.update id (Some {f with owner = addr}) d.fighters;
+            fighters_by_owner = fbo;
         }
 
 let sink_fees (addr, d: address * fighter_storage) =
@@ -122,6 +135,7 @@ let main (action, d: fighter_parameter * fighter_storage) =
 
 
 [@view] let get_fighter_data = _get_fighter_data
+[@view] let get_fighters_by_owner = _get_fighters_by_owner
 [@view] let get_fees (_,d: unit * fighter_storage) = {
     mint = d.mint_fee;
     fusion = d.fusion_fee;

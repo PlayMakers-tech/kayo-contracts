@@ -29,7 +29,8 @@ type fighter_storage = {
     attribute_addr: address;
     ability_addr: address;
     admin: address;
-    fighters: (fighter_id, fighter_data) big_map
+    fighters: (fighter_id, fighter_data) big_map;
+    fighters_by_owner: (address, fighter_id set) big_map;
 }
 
 type fighter_parameter =

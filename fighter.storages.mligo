@@ -9,5 +9,6 @@ let init_store: fighter_storage = {
     attribute_addr = ("tz3QE72w1vC613ZaeAZwW5fxwrBUQAstyaZy": address);
     ability_addr = ("tz3QE72w1vC613ZaeAZwW5fxwrBUQAstyaZy": address);
     admin = ("tz3QE72w1vC613ZaeAZwW5fxwrBUQAstyaZy" : address);
-    fighters = Big_map.empty
+    fighters = Big_map.empty;
+    fighters_by_owner = Big_map.empty;
 }
