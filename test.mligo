@@ -18,6 +18,7 @@ let test =
     let dummy_address = ("tz3QE72w1vC613ZaeAZwW5fxwrBUQAstyaZy": address) in
     let mint_fee = 10tez in
     let fight_fee = 0.5tez in
+    let tournament_fee = 0.7tez in
     let _ = Test.set_source admin_address in
 
     // Fighter contract
@@ -40,20 +41,34 @@ let test =
 
     // Fight contract
     let init_store : fight_storage = {
-	    next_id = 1n;
-	    next_roundid = 1n;
-	    fight_fee = fight_fee;
-	    fighter_addr = (fighter_addr: address);
-	    tournament_addr = dummy_address;
-	    attribute_addr = dummy_address;
-	    admin = (admin_address: address);
-	    fights = Big_map.empty;
+        next_id = 1n;
+        next_roundid = 1n;
+        fight_fee = fight_fee;
+        fighter_addr = (fighter_addr: address);
+        tournament_addr = dummy_address;
+        attribute_addr = dummy_address;
+        admin = (admin_address: address);
+        fights = Big_map.empty;
         rounds = Big_map.empty;
         queues = Big_map.empty
-	} in
+    } in
     let fight_addr, _, _ = Test.originate_from_file "fight.mligo" "main" [] (Test.eval init_store) 0tez in
     let fight_typed_addr: (fight_parameter, fight_storage) typed_address = Test.cast_address fight_addr in
     let fight_contract = Test.to_contract fight_typed_addr in
+
+    // Tournament contract
+    let init_store : tournament_storage = {
+        next_id = 1n;
+        tournament_fee = tournament_fee;
+        fight_addr = (fight_addr: address);
+        fighter_addr = (fighter_addr: address);
+        admin = (admin_address: address);
+        active_tournaments = Set.empty;
+        tournaments = Big_map.empty;
+    } in
+    let tournament_addr, _, _ = Test.originate_from_file "tournament.mligo" "main" [] (Test.eval init_store) 0tez in
+    let tournament_typed_addr: (tournament_parameter, tournament_storage) typed_address = Test.cast_address tournament_addr in
+    let tournament_contract = Test.to_contract tournament_typed_addr in
 
     // Ability contract
 	let init_store: ability_storage = {
@@ -123,6 +138,12 @@ let test =
     in
     let _ = 
         (match Test.transfer_to_contract fight_contract (SetAttributeAddr attribute_addr) 0tez with
+        | Success _ -> true
+        | _ -> false )
+        |> Test.assert 
+    in
+    let _ = 
+        (match Test.transfer_to_contract fight_contract (SetTournamentAddr tournament_addr) 0tez with
         | Success _ -> true
         | _ -> false )
         |> Test.assert 
@@ -267,5 +288,17 @@ let test =
         | Fail err -> Test.failwith err )
         |> Test.assert 
     in
+
+    // Admin creates a new tournament
+    let now : timestamp = Tezos.get_now () in
+    let stamp: timestamp = now + 180 in    
+    let _ = Test.set_source admin_address in
+    let _ = 
+        (match Test.transfer_to_contract tournament_contract (CreateTournament (NoStake,stamp)) 0tez with
+        | Success _ -> true
+        | Fail err -> Test.failwith err )
+        |> Test.assert 
+    in
+
 
     ()

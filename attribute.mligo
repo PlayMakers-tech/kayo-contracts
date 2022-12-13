@@ -21,7 +21,8 @@ let new_attribute (id: fighter_id) : attribute_data =
         str = 1n;
         agi = 1n;
         con = 1n;
-        spd = 1n
+        spd = 1n;
+        skin = Leaf "fc5"
     }
 
 let set_fighter_addr (addr, d : address * attribute_storage) =

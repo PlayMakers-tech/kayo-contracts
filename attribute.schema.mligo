@@ -3,6 +3,13 @@
 
 type attribute_value = nat
 
+// Type definition for skin (tree of genes)
+type attribute_leaf = string
+type attribute_node = nat
+type attribute_tree =
+| Node attribute_node (attribute_leaf list)
+| Leaf attribute_leaf
+
 #include "fighter.schema.mligo"
 
 type attribute_data = {
@@ -11,7 +18,8 @@ type attribute_data = {
     str: attribute_value;
     agi: attribute_value;
     con: attribute_value;
-    spd: attribute_value
+    spd: attribute_value;
+    skin: attribute_tree
 }
 
 

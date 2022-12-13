@@ -41,7 +41,8 @@ let create_tournament (stake, stamp, d: tournament_stake * timestamp * tournamen
     let _ = _admin_only d in
     [], { d with
             next_id = d.next_id + 1n;
-            tournaments = Big_map.add d.next_id (new_tournament (d.next_id, stake, stamp)) d.tournaments
+            tournaments = Big_map.add d.next_id (new_tournament (d.next_id, stake, stamp)) d.tournaments;
+        	active_tournaments = Set.add d.next_id d.active_tournaments
         }
 
 
@@ -100,6 +101,7 @@ let next_phase (id, d: tournament_id * tournament_storage) =
     else if t.state <> (Closed: tournament_state) && t.state <> (OnGoing: tournament_state)
     then failwith ERROR.cant_start_next_phase
     else failwith "Not implemented yet"
+    // Don't forget to remove from active_tournaments
 
 
 let main (action, d: tournament_parameter * tournament_storage) = 
