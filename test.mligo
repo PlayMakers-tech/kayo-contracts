@@ -192,9 +192,6 @@ let test =
         | Fail err -> Test.failwith err )
         |> Test.assert 
     in
-    let _ = Test.println "Probing Alice in her queue" in
-    let _ = dump alice_token in
-    let _ = Test.println "" in
 
     let _ = Test.set_source bob_address in
     let _ = Test.transfer_to_contract fight_contract (AddToQueue (bob_token,NoStakeQ)) fight_fee in
@@ -251,5 +248,24 @@ let test =
     let _ = Test.println "Probing Alice's level up" in
     let _ = dump alice_token in
     let _ = Test.println "" in
+
+    // Alice goes on a TezStakeQ and cancel
+    let stake = 1tez in
+    let _ = Test.set_source alice_address in
+    let _ = 
+        (match Test.transfer_to_contract fight_contract (AddToQueue (alice_token,TezStakeQ stake)) (fight_fee+stake) with
+        | Success _ -> true
+        | Fail err -> Test.failwith err )
+        |> Test.assert 
+    in
+    let _ = Test.println "Probing Alice in her queue" in
+    let _ = dump alice_token in
+    let _ = Test.println "" in
+    let _ = 
+        (match Test.transfer_to_contract fight_contract (CancelQueue alice_token) 0tez with
+        | Success _ -> true
+        | Fail err -> Test.failwith err )
+        |> Test.assert 
+    in
 
     ()
