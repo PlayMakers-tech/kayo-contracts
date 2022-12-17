@@ -40,7 +40,8 @@ let mint (d : fighter_storage) =
     let set = Set.add d.next_id (_get_fighters_by_owner (owner, d)) in
     let fbo = Big_map.update owner (Some set) d.fighters_by_owner in
     [Tezos.transaction ((Mint d.next_id):attribute_parameter) 0tez (Tezos.get_contract d.attribute_addr);
-     Tezos.transaction ((Mint d.next_id):ability_parameter) 0tez (Tezos.get_contract d.ability_addr)],
+     Tezos.transaction ((Mint d.next_id):ability_parameter) 0tez (Tezos.get_contract d.ability_addr);
+     Tezos.emit "%minted" d.next_id],
     { d with
         next_id = d.next_id + 1n;
         fighters = Big_map.add d.next_id (new_fighter (d.next_id, owner)) d.fighters;

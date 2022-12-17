@@ -7,8 +7,8 @@ type attribute_value = nat
 type attribute_leaf = string
 type attribute_node = nat
 type attribute_tree =
-| Node attribute_node (attribute_leaf list)
-| Leaf attribute_leaf
+| Node of (attribute_node * (attribute_leaf list))
+| Leaf of attribute_leaf
 
 #include "fighter.schema.mligo"
 
