@@ -13,16 +13,25 @@ let _get_xp_from_lvl (lvl: nat) =
 let _get_lvl_from_xp (xp: nat) =
 	abs (sqrt (xp/10))
 
+(*let _random_skin (children, r, d: (attribute_leaf list) * nat * attribute_storage) : attribute_tree =
+	if List.size children = 0n
+	then Leaf "fc5"
+	else Node (d.skin_node_limit,children)*)
 
 let new_attribute (id: fighter_id) : attribute_data =
+	let r : bytes = rand_hash () in
+	let a : nat = byte_to_nat (Bytes.sub 0n 1n r) in
+	let b : nat = byte_to_nat (Bytes.sub 1n 1n r) in
+	let c : bytes = Bytes.sub 2n 3n r in
+	let max : nat = 16n in
     {
         id  = id;
         xp  = 0n;
-        str = 1n;
-        agi = 1n;
-        con = 1n;
-        spd = 1n;
-        skin = Leaf "fc5"
+        str = a mod max;
+        agi = (a / max) mod max;
+        con = b mod max;
+        spd = (b / max) mod max;
+        skin = Leaf c
     }
 
 let set_fighter_addr (addr, d : address * attribute_storage) =
@@ -31,6 +40,9 @@ let set_fighter_addr (addr, d : address * attribute_storage) =
 let set_fight_addr (addr, d : address * attribute_storage) =
     let _ = _admin_only d in
     [], {d with fight_addr = addr}
+let set_skin_node_limit (limit, d : attribute_node * attribute_storage) =
+    let _ = _admin_only d in
+    [], {d with skin_node_limit = limit}
 
 let rec _add_xp_and_lvl_up (attr, xp: attribute_data * nat) : attribute_data =
 	let current_lvl = _get_lvl_from_xp attr.xp in
@@ -67,6 +79,7 @@ let main (action, d: attribute_parameter * attribute_storage) =
     ( match action with
     | SetFighterAddr addr -> set_fighter_addr(addr,d)
     | SetFightAddr addr -> set_fight_addr(addr,d)
+    | SetSkinNodeLimit limit -> set_skin_node_limit(limit,d)
     | EarnXP (id,xp) -> earn_xp(id,xp,d)
     | Mint id -> mint(id,d)
     | Fusion (id,father,mother) -> fusion(id,father,mother,d)

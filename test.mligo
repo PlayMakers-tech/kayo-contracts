@@ -1,5 +1,6 @@
 #include "schema.mligo"
 #include "error.mligo"
+#include "utils.mligo"
 
 let get_fighter_data (id,d: fighter_id * fighter_storage) =
     Option.unopt_with_error (Big_map.find_opt id d.fighters) "Invalid fighter_id"
@@ -111,6 +112,7 @@ let test =
 	    fight_addr = (fight_addr: address);
 	    fighter_addr = (fighter_addr: address);
         admin = (admin_address : address);
+        skin_node_limit = 1n;
 	    attributes = Big_map.empty
 	} in
     let attribute_addr, _, _ = Test.originate_from_file "attribute.mligo" "main" [] (Test.eval init_store) 0tez in
@@ -299,6 +301,5 @@ let test =
         | Fail err -> Test.failwith err )
         |> Test.assert 
     in
-
 
     ()
