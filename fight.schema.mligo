@@ -23,8 +23,9 @@ type fight_state =
 type fight_metadata = string
 
 type fight_id = nat
-type round_id = nat
 type round_amount = nat
+type round_data = string
+type strategy_data = string
 
 #include "fighter.schema.mligo"
 
@@ -32,26 +33,22 @@ type fight_data = {
     id: fight_id;
     a: fighter_id;
     b: fighter_id;
-    round: nat;
+    rounds: round_data list;
     round_cnt: round_amount;
     stake: fight_stake;
     state: fight_state;
     result: int;
     metadata: fight_metadata
 }
-type round_data = string
-type strategy_data = string
 
 type fight_storage = {
     next_id: fight_id;
-    next_roundid: round_id;
     fight_fee: tez;
     fighter_addr: address;
     tournament_addr: address;
     attribute_addr: address;
     admin: address;
     fights: (fight_id, fight_data) big_map;
-    rounds: (round_id, round_data) big_map;
     queues: (fight_queue, fighter_id set) big_map
 }
 

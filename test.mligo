@@ -43,14 +43,12 @@ let test =
     // Fight contract
     let init_store : fight_storage = {
         next_id = 1n;
-        next_roundid = 1n;
         fight_fee = fight_fee;
         fighter_addr = (fighter_addr: address);
         tournament_addr = dummy_address;
         attribute_addr = dummy_address;
         admin = (admin_address: address);
         fights = Big_map.empty;
-        rounds = Big_map.empty;
         queues = Big_map.empty
     } in
     let fight_addr, _, _ = Test.originate_from_file "fight.mligo" "main" [] (Test.eval init_store) 0tez in

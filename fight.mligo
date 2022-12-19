@@ -10,8 +10,6 @@ let _get_fighter_data (a,d: fighter_id * fight_storage) =
     : fighter_data)
 let _get_fight_data (id, d: fight_id * fight_storage) =
     Option.unopt_with_error (Big_map.find_opt id d.fights) "Invalid fight_id"
-let _get_round_data (id, d: round_id * fight_storage) =
-    Option.unopt_with_error (Big_map.find_opt id d.rounds) "Invalid round_id"
 let _get_fighters_in_queue (q, d: fight_queue * fight_storage): fighter_id set =
     match (Big_map.find_opt q d.queues) with
     | Some x -> x
@@ -74,7 +72,7 @@ let new_fight (id, a, b, round_cnt, stake: fight_id * fighter_id * fighter_id * 
         id = id;
         a = a;
         b = b;
-        round = 0n;
+        rounds = [];
         round_cnt = round_cnt;
         stake = stake;
         state = Initialized;
@@ -103,16 +101,14 @@ let create_fight (a, b, round_cnt, stake, d:
 let resolve_round (id, round, result, data, d: fight_id * nat * int * round_data * fight_storage) =
     let _ = _admin_only d in
 	let f = _get_fight_data (id,d) in
-    if round <> f.round+1n
+    if round <> (List.size f.rounds) +1n
     then failwith ERROR.invalid_round
     else let d = { d with
-    	next_roundid = d.next_roundid + 1n;
     	fights = Big_map.update id 
                 (Some { f with 
-                    round = f.round + 1n;
+                    rounds = data::f.rounds;
                     result = f.result + result
                 }) d.fights;
-    	rounds = Big_map.add d.next_roundid data d.rounds
     } in
     if round < f.round_cnt
     then [], d
@@ -170,7 +166,6 @@ let main (action, d: fight_parameter * fight_storage) =
 
 
 [@view] let get_fight_data = _get_fight_data
-[@view] let get_round_data = _get_round_data
 [@view] let get_fighters_in_queue = _get_fighters_in_queue
 [@view] let get_fees (_,d: unit * fight_storage) = {
     fight = d.fight_fee
