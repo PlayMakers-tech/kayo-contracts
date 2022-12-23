@@ -89,13 +89,16 @@ let create_fight (a, b, round_cnt, stake, d:
     if (fa.listed || fa.fight>0n) then failwith ERROR.unavailable_fighter "a"
     else let fb = _get_fighter_data (b,d) in
     if (fb.listed || fb.fight>0n) then failwith ERROR.unavailable_fighter "b"
-    else
+    else 
+    if (fa.queue <> fb.queue) then failwith ERROR.different_queue
+    else let queue_set = _get_fighters_in_queue (fa.queue,d) in
 	[Tezos.transaction (SetFighterState (a,d.next_id,fa.tournament,NotQueuing)) 0tez (Tezos.get_contract d.fighter_addr);
 	 Tezos.transaction (SetFighterState (b,d.next_id,fb.tournament,NotQueuing)) 0tez (Tezos.get_contract d.fighter_addr);
      Tezos.emit "%newFight" (d.next_id, a, b)],
 	{ d with 
         next_id = d.next_id + 1n;
-        fights = Big_map.add d.next_id (new_fight (d.next_id, a, b, round_cnt, stake)) d.fights
+        fights = Big_map.add d.next_id (new_fight (d.next_id, a, b, round_cnt, stake)) d.fights;
+        queues = Big_map.update fa.queue (Some (Set.remove b (Set.remove a queue_set))) d.queues
 	}
 
 let resolve_round (id, round, result, data, d: fight_id * nat * int * round_data * fight_storage) =

@@ -28,6 +28,7 @@ module ERROR =
 	let unavailable_fighter (str:string) = "Unavaiable fighter " ^ str
 	let invalid_round   = "Invalid round number"
 	let invalid_queue   = "Invalid queue specified"
+	let different_queue = "Both fighters are not in the same queue"
 
 	let cancel_not_open = "Can only cancel open tournaments"
 	let join_not_open   = "Can only join open tournaments"
