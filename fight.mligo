@@ -77,7 +77,7 @@ let new_fight (id, a, b, round_cnt, stake: fight_id * fighter_id * fighter_id * 
         stake = stake;
         state = Initialized;
         result = 0;
-        metadata = ""
+        metadata = 0x00
     } : fight_data)
 
 
@@ -115,7 +115,7 @@ let resolve_round (id, round, result, data, d: fight_id * nat * int * round_data
     } in
     let event = Tezos.emit "%roundResolved" (id, round, result, data) in
     if round < f.round_cnt
-    then [event], d
+    then [Tezos.emit "%nextRound" (id, f.a, f.b, round+1n);event], d
 	else _resolve_fight(id,event,d)
 
 

@@ -20,12 +20,11 @@ type fight_state =
 | Finished
 
 
-type fight_metadata = string
-
+type fight_metadata = bytes
 type fight_id = nat
 type round_amount = nat
-type round_data = string
-type strategy_data = string
+type round_data = bytes
+type strategy_data = bytes
 
 #include "fighter.schema.mligo"
 

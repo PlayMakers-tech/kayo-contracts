@@ -236,19 +236,19 @@ let test =
 
     // Go through rounds
     let _ = 
-        (match Test.transfer_to_contract fight_contract (ResolveRound (fight_id, 1n,  1, "round_data")) 0tez with
+        (match Test.transfer_to_contract fight_contract (ResolveRound (fight_id, 1n,  1, 0x00)) 0tez with
         | Success _ -> true
         | Fail err -> Test.failwith err )
         |> Test.assert 
     in
     let _ = 
-        (match Test.transfer_to_contract fight_contract (ResolveRound (fight_id, 2n, -1, "round_data")) 0tez with
+        (match Test.transfer_to_contract fight_contract (ResolveRound (fight_id, 2n, -1, 0x00)) 0tez with
         | Success _ -> true
         | Fail err -> Test.failwith err )
         |> Test.assert 
     in
     let _ = 
-        (match Test.transfer_to_contract fight_contract (ResolveRound (fight_id, 3n,  1, "round_data")) 0tez with
+        (match Test.transfer_to_contract fight_contract (ResolveRound (fight_id, 3n,  1, 0x00)) 0tez with
         | Success _ -> true
         | Fail err -> Test.failwith err )
         |> Test.assert 
