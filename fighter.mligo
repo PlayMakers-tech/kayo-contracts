@@ -103,10 +103,11 @@ let transfer (id, addr, d: fighter_id * address * fighter_storage) =
     let fbo = Big_map.update addr (Some set) d.fighters_by_owner in
     let old = Set.remove id (_get_fighters_by_owner (f.owner, d)) in
     let fbo = Big_map.update f.owner (if (Set.cardinal old) = 0n then None else Some old) fbo in
-    [], { d with
-            fighters = Big_map.update id (Some {f with owner = addr}) d.fighters;
-            fighters_by_owner = fbo;
-        }
+    [Tezos.emit "%transfer" (id, f.owner, addr)],
+    { d with
+        fighters = Big_map.update id (Some {f with owner = addr}) d.fighters;
+        fighters_by_owner = fbo;
+    }
 
 let sink_fees (addr, d: address * fighter_storage) =
     let _ = _admin_only d in

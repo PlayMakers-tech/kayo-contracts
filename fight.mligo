@@ -16,7 +16,7 @@ let _get_fighters_in_queue (q, d: fight_queue * fight_storage): fighter_id set =
     | None -> Set.empty
 
 
-let _resolve_fight (id, d: fight_id * fight_storage) =
+let _resolve_fight (id, event, d: fight_id * operation * fight_storage) =
 	let f = _get_fight_data (id,d) in
     let fa = _get_fighter_data (f.a,d) in
     let fb = _get_fighter_data (f.b,d) in
@@ -47,7 +47,7 @@ let _resolve_fight (id, d: fight_id * fight_storage) =
     	(Tezos.transaction (EarnXP (f.a,abs(f.round_cnt+1+f.result))) 0tez (Tezos.get_contract d.attribute_addr))::
     	(Tezos.transaction (EarnXP (f.b,abs(f.round_cnt+1-f.result))) 0tez (Tezos.get_contract d.attribute_addr))::
      	op in
-    op,d
+    event::op,d
 
 let set_fight_fee (v, d : tez * fight_storage) =
     let _ = _admin_only d in
@@ -90,9 +90,9 @@ let create_fight (a, b, round_cnt, stake, d:
     else let fb = _get_fighter_data (b,d) in
     if (fb.listed || fb.fight>0n) then failwith ERROR.unavailable_fighter "b"
     else
-	// EVENTS TO BE ADDED
 	[Tezos.transaction (SetFighterState (a,d.next_id,fa.tournament,NotQueuing)) 0tez (Tezos.get_contract d.fighter_addr);
-	 Tezos.transaction (SetFighterState (b,d.next_id,fb.tournament,NotQueuing)) 0tez (Tezos.get_contract d.fighter_addr)],
+	 Tezos.transaction (SetFighterState (b,d.next_id,fb.tournament,NotQueuing)) 0tez (Tezos.get_contract d.fighter_addr);
+     Tezos.emit "%newFight" (d.next_id, a, b)],
 	{ d with 
         next_id = d.next_id + 1n;
         fights = Big_map.add d.next_id (new_fight (d.next_id, a, b, round_cnt, stake)) d.fights
@@ -110,9 +110,10 @@ let resolve_round (id, round, result, data, d: fight_id * nat * int * round_data
                     result = f.result + result
                 }) d.fights;
     } in
+    let event = Tezos.emit "%roundResolved" (id, round, result, data) in
     if round < f.round_cnt
-    then [], d
-	else _resolve_fight(id,d)
+    then [event], d
+	else _resolve_fight(id,event,d)
 
 
 let set_strategy (_id, _a, _data, _d: fight_id * fighter_id * strategy_data * fight_storage) =
@@ -131,7 +132,8 @@ let add_to_queue (a, queue, d: fighter_id * fight_queue * fight_storage) =
     if fa.listed || fa.queue <> NotQueuing || fa.tournament <> 0n || fa.fight <> 0n
     then failwith ERROR.occupied
 	else let queue_set = _get_fighters_in_queue (queue,d) in
-    [Tezos.transaction (SetFighterState (a,0n,0n,queue)) 0tez (Tezos.get_contract d.fighter_addr)],
+    [Tezos.transaction (SetFighterState (a,0n,0n,queue)) 0tez (Tezos.get_contract d.fighter_addr);
+     Tezos.emit "%addedToQueue" (a, queue)],
     { d with queues = Big_map.update queue (Some (Set.add a queue_set)) d.queues }
 
 let cancel_queue (a, d: fighter_id * fight_storage) =

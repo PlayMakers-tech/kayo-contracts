@@ -39,11 +39,12 @@ let new_tournament (id, stake, stamp: tournament_id * tournament_stake * timesta
 
 let create_tournament (stake, stamp, d: tournament_stake * timestamp * tournament_storage) =
     let _ = _admin_only d in
-    [], { d with
-            next_id = d.next_id + 1n;
-            tournaments = Big_map.add d.next_id (new_tournament (d.next_id, stake, stamp)) d.tournaments;
-        	active_tournaments = Set.add d.next_id d.active_tournaments
-        }
+    [Tezos.emit "%newTournament" (d.next_id, stake, stamp)],
+    { d with
+        next_id = d.next_id + 1n;
+        tournaments = Big_map.add d.next_id (new_tournament (d.next_id, stake, stamp)) d.tournaments;
+    	active_tournaments = Set.add d.next_id d.active_tournaments
+    }
 
 
 let cancel_tournament (id, d: tournament_id * tournament_storage) =
@@ -91,7 +92,7 @@ let generate_tree (id, seed, d: tournament_id * nat * tournament_storage) =
 		state = Closed;
 		scores = Set.fold _score_map t.fighters t.scores
 	} in
-	[], { d with tournaments = Big_map.update id (Some t) d.tournaments }
+	[Tezos.emit "%generatedTree" id], { d with tournaments = Big_map.update id (Some t) d.tournaments }
 
 let next_phase (id, d: tournament_id * tournament_storage) =
     let _ = _admin_only d in

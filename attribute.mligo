@@ -44,11 +44,11 @@ let set_skin_node_limit (limit, d : attribute_node * attribute_storage) =
     let _ = _admin_only d in
     [], {d with skin_node_limit = limit}
 
-let rec _add_xp_and_lvl_up (attr, xp: attribute_data * nat) : attribute_data =
+let rec _add_xp_and_lvl_up (attr, xp, lvl: attribute_data * nat * nat) : (attribute_data * nat) =
 	let current_lvl = _get_lvl_from_xp attr.xp in
 	let next_lvl_xp = _get_xp_from_lvl (current_lvl+1n) in
 	if attr.xp + xp < next_lvl_xp
-	then {attr with xp = attr.xp + xp}
+	then {attr with xp = attr.xp + xp}, lvl
 	else let xp = abs(xp + attr.xp - next_lvl_xp) in
 	let attr = { attr with
 		xp = next_lvl_xp;
@@ -57,14 +57,15 @@ let rec _add_xp_and_lvl_up (attr, xp: attribute_data * nat) : attribute_data =
 		con = attr.con+1n;
 		spd = attr.spd+1n
 	} in
-	_add_xp_and_lvl_up (attr,xp)
+	_add_xp_and_lvl_up (attr, xp, lvl+1n)
 
 let earn_xp (id, xp, d: fighter_id * nat * attribute_storage) =
     if not (Set.mem (Tezos.get_sender ()) (Set.literal [d.admin;d.fight_addr]))
     then failwith ERROR.rights_other
 	else let attr = _get_attribute_data (id,d) in
-	let attr = _add_xp_and_lvl_up (attr,xp) in
-	[], { d with attributes = Big_map.update id (Some attr) d.attributes }
+	let (attr, lvl) = _add_xp_and_lvl_up (attr,xp,0n) in
+	let op = if lvl = 0n then [] else [Tezos.emit "%levelUp" (id, lvl)] in
+	op, { d with attributes = Big_map.update id (Some attr) d.attributes }
 
 let mint (id, d: fighter_id * attribute_storage) =
     if Tezos.get_sender () <> d.fighter_addr
