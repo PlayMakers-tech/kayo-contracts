@@ -36,6 +36,8 @@ module ERROR =
 	let pending_fights  = "Pending fights"
 	let cant_start_next_phase = "Can't start next phase of this tournament"
 
+	let wrong_proba_skin = "Issue with probabilities in skin_nodes/leaves setup"
+
 end
 
 #endif

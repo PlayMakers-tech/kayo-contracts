@@ -4,11 +4,8 @@
 type attribute_value = nat
 
 // Type definition for skin (tree of genes)
-type attribute_leaf = bytes
-type attribute_node = nat
-type attribute_tree =
-| Node of (attribute_node * (attribute_leaf list)) (* * (attribute_tree list)) *)
-| Leaf of attribute_leaf
+type attribute_skin = bytes
+type attribute_skin_node = bytes * nat * nat (* id, size, likelihood *)
 
 #include "fighter.schema.mligo"
 
@@ -19,21 +16,23 @@ type attribute_data = {
     agi: attribute_value;
     con: attribute_value;
     spd: attribute_value;
-    skin: attribute_tree
+    skin: attribute_skin
 }
 
 type attribute_storage = {
     fight_addr: address;
     fighter_addr: address;
     admin: address;
-    skin_node_limit: attribute_node;
+    skin_nodes: nat * (attribute_skin_node list);
+    skin_leaves: nat * (attribute_skin_node list);
     attributes: (fighter_id, attribute_data) big_map
 }
 
 type attribute_parameter =
 | SetFightAddr of address
 | SetFighterAddr of address
-| SetSkinNodeLimit of attribute_node
+| SetSkinNodes of nat * (attribute_skin_node list)
+| SetSkinLeaves of nat * (attribute_skin_node list)
 | EarnXP of fighter_id * nat
 | Mint of fighter_id
 | Fusion of fighter_id * fighter_id * fighter_id

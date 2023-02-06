@@ -110,7 +110,8 @@ let test =
 	    fight_addr = (fight_addr: address);
 	    fighter_addr = (fighter_addr: address);
         admin = (admin_address : address);
-        skin_node_limit = 1n;
+        skin_nodes = (1n, [(0x10,1n,1n)]);
+        skin_leaves = (1n, [(0x00,2n,1n)]);
 	    attributes = Big_map.empty
 	} in
     let attribute_addr, _, _ = Test.originate_from_file "attribute.mligo" "main" [] (Test.eval init_store) 0tez in

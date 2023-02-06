@@ -13,16 +13,37 @@ let _get_xp_from_lvl (lvl: nat) =
 let _get_lvl_from_xp (xp: nat) =
 	abs (sqrt (xp/10))
 
-(*let _random_skin (children, r, d: (attribute_leaf list) * nat * attribute_storage) : attribute_tree =
-	if List.size children = 0n
-	then Leaf "fc5"
-	else Node (d.skin_node_limit,children)*)
+let rec _pick_with_proba (a, l: nat * attribute_skin_node list) : attribute_skin_node =
+	match l with
+	| (id,size,llh)::t ->
+		if a <= llh
+		then (id,size,llh)
+		else _pick_with_proba (a+llh, t)
+	| _ -> failwith ERROR.wrong_proba_skin
 
-let new_attribute (id: fighter_id) : attribute_data =
+let _random_skin_leaf (r, d:  bytes * attribute_storage) : attribute_skin =
+	let (p, l) : (nat * attribute_skin_node list) = d.skin_leaves in
+	let a : nat = (byte_to_nat (Bytes.sub 0n 1n r)) * 256n + (byte_to_nat (Bytes.sub 1n 1n r)) in
+	let a : nat = a mod p in
+	let (id, size, _) : attribute_skin_node = _pick_with_proba (a, l) in
+	if size = 0n
+	then id
+	else Bytes.concat id (Bytes.sub 2n size r)
+
+let _random_skin_node (r, n1, n2, d:  bytes * attribute_skin * attribute_skin * attribute_storage) : attribute_skin =
+	let (p, l) = d.skin_nodes in
+	let a : nat = (byte_to_nat (Bytes.sub 0n 1n r)) * 256n + (byte_to_nat (Bytes.sub 1n 1n r)) in
+	let a : nat = a mod p in
+	let (id, size, _) : attribute_skin_node = _pick_with_proba (a, l) in
+	if size = 0n
+	then Bytes.concat id (Bytes.concat n1 n2)
+	else Bytes.concat id (Bytes.concat (Bytes.sub 2n size r) (Bytes.concat n1 n2))
+
+let new_attribute (id, d: fighter_id * attribute_storage) : attribute_data =
 	let r : bytes = rand_hash () in
 	let a : nat = byte_to_nat (Bytes.sub 0n 1n r) in
 	let b : nat = byte_to_nat (Bytes.sub 1n 1n r) in
-	let c : bytes = Bytes.sub 2n 3n r in
+	let c : bytes = Bytes.sub 2n 10n r in
 	let max : nat = 16n in
     {
         id  = id;
@@ -31,7 +52,25 @@ let new_attribute (id: fighter_id) : attribute_data =
         agi = (a / max) mod max;
         con = b mod max;
         spd = (b / max) mod max;
-        skin = Leaf c
+        skin = _random_skin_leaf (c, d)
+    }
+
+let fuse_attribute (id, father, mother, d: fighter_id * fighter_id * fighter_id * attribute_storage) : attribute_data =
+	let r : bytes = rand_hash () in
+	let f : attribute_data = _get_attribute_data (father, d) in
+	let m : attribute_data = _get_attribute_data (mother, d) in
+	let a : nat = byte_to_nat (Bytes.sub 0n 1n r) in
+	let b : nat = byte_to_nat (Bytes.sub 1n 1n r) in
+	let c : bytes = Bytes.sub 2n 10n r in
+	let max : nat = 2n in
+    {
+        id  = id;
+        xp  = 0n;
+        str = (f.str + m.str + 1n / 2n) + a mod max;
+        agi = (f.agi + m.agi + 1n / 2n) + (a / max) mod max;
+        con = (f.con + m.con + 1n / 2n) + b mod max;
+        spd = (f.spd + m.spd + 1n / 2n) + (b / max) mod max;
+        skin = _random_skin_node (c, f.skin, m.skin, d)
     }
 
 let set_fighter_addr (addr, d : address * attribute_storage) =
@@ -40,9 +79,12 @@ let set_fighter_addr (addr, d : address * attribute_storage) =
 let set_fight_addr (addr, d : address * attribute_storage) =
     let _ = _admin_only d in
     [], {d with fight_addr = addr}
-let set_skin_node_limit (limit, d : attribute_node * attribute_storage) =
+let set_skin_nodes (proba, l, d : nat * (attribute_skin_node list) * attribute_storage) =
     let _ = _admin_only d in
-    [], {d with skin_node_limit = limit}
+    [], {d with skin_nodes = (proba, l)}
+let set_skin_leaves (proba, l, d : nat * (attribute_skin_node list) * attribute_storage) =
+    let _ = _admin_only d in
+    [], {d with skin_leaves = (proba, l)}
 
 let rec _add_xp_and_lvl_up (attr, xp, lvl: attribute_data * nat * nat) : (attribute_data * nat) =
 	let current_lvl = _get_lvl_from_xp attr.xp in
@@ -70,17 +112,19 @@ let earn_xp (id, xp, d: fighter_id * nat * attribute_storage) =
 let mint (id, d: fighter_id * attribute_storage) =
     if Tezos.get_sender () <> d.fighter_addr
 	then failwith ERROR.rights_other
-	else [], { d with attributes = Big_map.add id (new_attribute id) d.attributes }
+	else [], { d with attributes = Big_map.add id (new_attribute (id, d)) d.attributes }
 
-
-let fusion (_id, _father, _mother, _d: fighter_id * fighter_id * fighter_id * attribute_storage) =
-	failwith "Not implemented yet"
+let fusion (id, father, mother, d: fighter_id * fighter_id * fighter_id * attribute_storage) =
+    if Tezos.get_sender () <> d.fighter_addr
+	then failwith ERROR.rights_other
+	else [], { d with attributes = Big_map.add id (fuse_attribute (id, father, mother, d)) d.attributes }
 
 let main (action, d: attribute_parameter * attribute_storage) = 
     ( match action with
     | SetFighterAddr addr -> set_fighter_addr(addr,d)
     | SetFightAddr addr -> set_fight_addr(addr,d)
-    | SetSkinNodeLimit limit -> set_skin_node_limit(limit,d)
+    | SetSkinNodes (proba,l) -> set_skin_nodes(proba,l,d)
+    | SetSkinLeaves (proba,l) -> set_skin_leaves(proba,l,d)
     | EarnXP (id,xp) -> earn_xp(id,xp,d)
     | Mint id -> mint(id,d)
     | Fusion (id,father,mother) -> fusion(id,father,mother,d)
