@@ -109,11 +109,14 @@ let mint (id, d: fighter_id * ability_storage) =
 	let d = _learn_rand_ability (id, d) in
 	[], d
 
-
-let fusion (_id,_father,_mother, d: fighter_id * fighter_id * fighter_id * ability_storage) =
+// TODO Fusion most likely to be reworked (this currently ignores rarity count)
+let fusion (id, father, mother, d: fighter_id * fighter_id * fighter_id * ability_storage) =
     if Tezos.get_sender () <> d.fighter_addr
     then failwith ERROR.rights_other
-	else failwith "Not implemented yet (fusion)"
+	else let set = _get_fighter_abilities (father, d) in
+	let merge (a, aid: ability_id set * ability_id) : ability_id set = Set.add aid a in
+	let set = Set.fold merge (_get_fighter_abilities (mother, d)) set in
+	[], { d with fighter_abilities = Big_map.add id set d.fighter_abilities }
 
 let learn_ability (fid, aid, d: fighter_id * ability_id * ability_storage) =
     if Tezos.get_sender () <> d.fighter_addr

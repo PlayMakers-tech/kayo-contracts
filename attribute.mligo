@@ -114,6 +114,7 @@ let mint (id, d: fighter_id * attribute_storage) =
 	then failwith ERROR.rights_other
 	else [], { d with attributes = Big_map.add id (new_attribute (id, d)) d.attributes }
 
+// TODO The fusion needs to be reworked
 let fusion (id, father, mother, d: fighter_id * fighter_id * fighter_id * attribute_storage) =
     if Tezos.get_sender () <> d.fighter_addr
 	then failwith ERROR.rights_other

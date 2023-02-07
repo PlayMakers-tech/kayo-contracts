@@ -18,6 +18,7 @@ let beforeTransfer (f: fighter_data) =
     else if f.queue<>NotQueuing then failwith ERROR.queued
     else if f.fight<>0n         then failwith ERROR.fighting
     else if f.tournament<>0n    then failwith ERROR.tournamenting
+    else if f.inactive=true     then failwith ERROR.inactive
 
 let new_fighter (id, owner: fighter_id * address) =
     ({
@@ -25,6 +26,7 @@ let new_fighter (id, owner: fighter_id * address) =
         owner = owner;
         listed_price = 0tez;
         listed = false;
+        inactive = false;
         fight = 0n;
         tournament = 0n;
         queue = NotQueuing;
@@ -84,8 +86,39 @@ let set_fighter_state (id,fight,tournament,queue,d:
                 }) d.fighters
         }
 
-let fusion (_mother, _father, _d: fighter_id * fighter_id * fighter_storage) =
-    failwith "Not implemented yet"
+// TODO The fusion needs to be reworked (maybe)
+let fusion (father, mother, d: fighter_id * fighter_id * fighter_storage) =
+    let owner = Tezos.get_sender () in
+    let f = _get_fighter_data (father,d) in
+    let m = _get_fighter_data (mother,d) in
+    if Tezos.get_amount () <> d.fusion_fee then failwith ERROR.fee else
+    if father = mother then failwith ERROR.invalid_fighter else
+    if owner <> f.owner then failwith ERROR.rights_owner else
+    if owner <> m.owner then failwith ERROR.rights_owner else
+    let _ = beforeTransfer f in 
+    let _ = beforeTransfer m in 
+    let set = Set.add d.next_id (_get_fighters_by_owner (owner, d)) in
+    let set = Set.remove father set in
+    let set = Set.remove mother set in
+    let fbo = Big_map.update owner (Some set) d.fighters_by_owner in
+    let n = new_fighter (d.next_id, owner) in
+    let n = { n with father = father; mother = mother } in
+    let f = { f with inactive = true } in
+    let m = { m with inactive = true } in
+    let fmap = Big_map.add d.next_id n d.fighters in
+    let fmap = Big_map.update father (Some f) fmap in
+    let fmap = Big_map.update mother (Some m) fmap in
+    [Tezos.transaction ((Fusion (d.next_id, father, mother)):attribute_parameter) 0tez (Tezos.get_contract d.attribute_addr);
+     Tezos.transaction ((Fusion (d.next_id, father, mother)):ability_parameter) 0tez (Tezos.get_contract d.ability_addr);
+     Tezos.emit "%minted" d.next_id],
+    { d with
+        next_id = d.next_id + 1n;
+        fighters = fmap;
+        fighters_by_owner = fbo;
+    }
+
+
+
 let list_fighter (_id, _price, _d: fighter_id * tez * fighter_storage) =
     failwith "Not implemented yet"
 let cancel_list (_id, _d: fighter_id * fighter_storage) =

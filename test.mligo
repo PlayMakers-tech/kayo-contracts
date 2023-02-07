@@ -20,13 +20,14 @@ let test =
     let mint_fee = 10tez in
     let fight_fee = 0.5tez in
     let tournament_fee = 0.7tez in
+    let fusion_fee = 20tez in
     let _ = Test.set_source admin_address in
 
     // Fighter contract
     let init_store : fighter_storage = {
         next_id = 1n;
         mint_fee = mint_fee;
-        fusion_fee = 20tez;
+        fusion_fee = fusion_fee;
         list_fee = 1tez;
         fight_addr = dummy_address;
         tournament_addr = dummy_address;
@@ -300,5 +301,24 @@ let test =
         | Fail err -> Test.failwith err )
         |> Test.assert 
     in
+
+    // Fusion
+    let _ = Test.set_source alice_address in
+    let _ =  Test.transfer_to_contract fighter_contract (Mint) mint_fee in
+    let _ =  Test.transfer_to_contract fighter_contract (Mint) mint_fee in
+    let alice_token1 : fighter_id = 3n in
+    let alice_token2 : fighter_id = 4n in
+    let _ = 
+        (match Test.transfer_to_contract fighter_contract (Fusion (alice_token1, alice_token2)) fusion_fee with
+        | Success _ -> true
+        | Fail err -> Test.failwith err )
+        |> Test.assert 
+    in
+    let alice_token3 : fighter_id = 5n in
+    let _ = Test.println "Probing Alice's fusion" in
+    let _ = dump alice_token1 in
+    let _ = dump alice_token2 in
+    let _ = dump alice_token3 in
+
 
     ()

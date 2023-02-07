@@ -6,11 +6,14 @@ module ERROR =
 	type t = string
 
 	let listed        = "The fighter is listed on the marketplace"
+	let inactive      = "The fighter is inactive"
 	let queued        = "The fighter is in a queue"
 	let fighting      = "The fighter is in a fight"
 	let tournamenting = "The fighter is in a tournament"
 	let occupied      = "Fighter already occupied elsewhere"
 	let not_in_queue  = "Fighter not in a queue"
+
+	let invalid_fighter = "Invalid fighter"
 
 	let fee           = "Missing expected fee value"
 	let stake         = "Missing expected stake value"

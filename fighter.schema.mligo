@@ -11,6 +11,7 @@ type fighter_data = {
     owner: address;
     listed_price: tez;
     listed: bool;
+    inactive: bool;
     fight: fight_id;
     tournament: tournament_id;
     queue: fight_queue;
