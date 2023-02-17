@@ -99,10 +99,14 @@ let create_ability (rl, d : rarity list * ability_storage) =
     let _ = _admin_only d in
     [], _create_ability (rl, d)
 
-let mint (id, d: fighter_id * ability_storage) =
+let mint (id, data, d: fighter_id * bytes * ability_storage) =
     if Tezos.get_sender () <> d.fighter_addr
     then failwith ERROR.rights_other
 	else let d = { d with fighter_abilities = Big_map.add id Set.empty d.fighter_abilities } in
+	if data<>0x00 then failwith "Minting with forced abilities not implemented yet"
+    else
+	let d = _learn_rand_ability (id, d) in
+	let d = _learn_rand_ability (id, d) in
 	let d = _learn_rand_ability (id, d) in
 	let d = _learn_rand_ability (id, d) in
 	let d = _learn_rand_ability (id, d) in
@@ -110,10 +114,12 @@ let mint (id, d: fighter_id * ability_storage) =
 	[], d
 
 // TODO Fusion most likely to be reworked (this currently ignores rarity count)
-let fusion (id, father, mother, d: fighter_id * fighter_id * fighter_id * ability_storage) =
+let fusion (id, father, mother, data, d: fighter_id * fighter_id * fighter_id * bytes * ability_storage) =
     if Tezos.get_sender () <> d.fighter_addr
     then failwith ERROR.rights_other
 	else let set = _get_fighter_abilities (father, d) in
+	if data<>0x00 then failwith "Fusion with forced abilities not implemented yet"
+    else
 	let merge (a, aid: ability_id set * ability_id) : ability_id set = Set.add aid a in
 	let set = Set.fold merge (_get_fighter_abilities (mother, d)) set in
 	[], { d with fighter_abilities = Big_map.add id set d.fighter_abilities }
@@ -139,8 +145,8 @@ let main (action, d: ability_parameter * ability_storage) =
     | SetProbaRarity (r,p) -> set_proba_rarity(r,p,d)
     | SetAmountRarity (r,n) -> set_amount_rarity(r,n,d)
     | CreateAbility rl -> create_ability(rl,d)
-    | Mint id -> mint(id,d)
-    | Fusion (id,father,mother) -> fusion(id,father,mother,d)
+    | Mint (id,data) -> mint(id,data,d)
+    | Fusion (id,father,mother,data) -> fusion(id,father,mother,data,d)
     | LearnAbility (fid,aid) -> learn_ability(fid,aid,d)
     | ForgetAbility (fid,aid) -> forget_ability(fid,aid,d)
     : (operation list * ability_storage))

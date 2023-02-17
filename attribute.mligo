@@ -39,37 +39,31 @@ let _random_skin_node (r, n1, n2, d:  bytes * attribute_skin * attribute_skin * 
 	then Bytes.concat id (Bytes.concat n1 n2)
 	else Bytes.concat id (Bytes.concat (Bytes.sub 2n size r) (Bytes.concat n1 n2))
 
-let new_attribute (id, d: fighter_id * attribute_storage) : attribute_data =
+let new_attribute (id, data, d: fighter_id * bytes * attribute_storage) : attribute_data =
 	let r : bytes = rand_hash () in
-	let a : nat = byte_to_nat (Bytes.sub 0n 1n r) in
-	let b : nat = byte_to_nat (Bytes.sub 1n 1n r) in
-	let c : bytes = Bytes.sub 2n 10n r in
-	let max : nat = 16n in
+	let c : bytes = Bytes.sub 0n 10n r in
+	let val_s : nat = byte_to_nat (Bytes.sub 0n 1n data) in
+	let val_p : nat = byte_to_nat (Bytes.sub (val_s+1n) 1n data) in
     {
         id  = id;
         xp  = 0n;
-        str = a mod max;
-        agi = (a / max) mod max;
-        con = b mod max;
-        spd = (b / max) mod max;
+        val = Bytes.sub 1n val_s data;
+        pot = Bytes.sub (val_s+2n) val_p data;
         skin = _random_skin_leaf (c, d)
     }
 
-let fuse_attribute (id, father, mother, d: fighter_id * fighter_id * fighter_id * attribute_storage) : attribute_data =
+let fuse_attribute (id, father, mother, data, d: fighter_id * fighter_id * fighter_id * bytes * attribute_storage) : attribute_data =
 	let r : bytes = rand_hash () in
 	let f : attribute_data = _get_attribute_data (father, d) in
 	let m : attribute_data = _get_attribute_data (mother, d) in
-	let a : nat = byte_to_nat (Bytes.sub 0n 1n r) in
-	let b : nat = byte_to_nat (Bytes.sub 1n 1n r) in
-	let c : bytes = Bytes.sub 2n 10n r in
-	let max : nat = 2n in
+	let c : bytes = Bytes.sub 0n 10n r in
+	let val_s : nat = byte_to_nat (Bytes.sub 0n 1n data) in
+	let val_p : nat = byte_to_nat (Bytes.sub (val_s+1n) 1n data) in
     {
         id  = id;
         xp  = 0n;
-        str = (f.str + m.str + 1n / 2n) + a mod max;
-        agi = (f.agi + m.agi + 1n / 2n) + (a / max) mod max;
-        con = (f.con + m.con + 1n / 2n) + b mod max;
-        spd = (f.spd + m.spd + 1n / 2n) + (b / max) mod max;
+        val = Bytes.sub 1n val_s data;
+        pot = Bytes.sub (val_s+2n) val_p data;
         skin = _random_skin_node (c, f.skin, m.skin, d)
     }
 
@@ -92,13 +86,7 @@ let rec _add_xp_and_lvl_up (attr, xp, lvl: attribute_data * nat * nat) : (attrib
 	if attr.xp + xp < next_lvl_xp
 	then {attr with xp = attr.xp + xp}, lvl
 	else let xp = abs(xp + attr.xp - next_lvl_xp) in
-	let attr = { attr with
-		xp = next_lvl_xp;
-		str = attr.str+1n;
-		agi = attr.agi+1n;
-		con = attr.con+1n;
-		spd = attr.spd+1n
-	} in
+	let attr = { attr with xp = next_lvl_xp } in
 	_add_xp_and_lvl_up (attr, xp, lvl+1n)
 
 let earn_xp (id, xp, d: fighter_id * nat * attribute_storage) =
@@ -109,16 +97,16 @@ let earn_xp (id, xp, d: fighter_id * nat * attribute_storage) =
 	let op = if lvl = 0n then [] else [Tezos.emit "%levelUp" (id, lvl)] in
 	op, { d with attributes = Big_map.update id (Some attr) d.attributes }
 
-let mint (id, d: fighter_id * attribute_storage) =
+let mint (id, data, d: fighter_id * bytes * attribute_storage) =
     if Tezos.get_sender () <> d.fighter_addr
 	then failwith ERROR.rights_other
-	else [], { d with attributes = Big_map.add id (new_attribute (id, d)) d.attributes }
+	else [], { d with attributes = Big_map.add id (new_attribute (id, data, d)) d.attributes }
 
 // TODO The fusion needs to be reworked
-let fusion (id, father, mother, d: fighter_id * fighter_id * fighter_id * attribute_storage) =
+let fusion (id, father, mother, data, d: fighter_id * fighter_id * fighter_id * bytes * attribute_storage) =
     if Tezos.get_sender () <> d.fighter_addr
 	then failwith ERROR.rights_other
-	else [], { d with attributes = Big_map.add id (fuse_attribute (id, father, mother, d)) d.attributes }
+	else [], { d with attributes = Big_map.add id (fuse_attribute (id, father, mother, data, d)) d.attributes }
 
 let main (action, d: attribute_parameter * attribute_storage) = 
     ( match action with
@@ -127,8 +115,8 @@ let main (action, d: attribute_parameter * attribute_storage) =
     | SetSkinNodes (proba,l) -> set_skin_nodes(proba,l,d)
     | SetSkinLeaves (proba,l) -> set_skin_leaves(proba,l,d)
     | EarnXP (id,xp) -> earn_xp(id,xp,d)
-    | Mint id -> mint(id,d)
-    | Fusion (id,father,mother) -> fusion(id,father,mother,d)
+    | Mint (id,data) -> mint(id,data,d)
+    | Fusion (id,father,mother,data) -> fusion(id,father,mother,data,d)
     : (operation list * attribute_storage))
 
 

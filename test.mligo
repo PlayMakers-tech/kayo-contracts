@@ -28,12 +28,12 @@ let test =
         next_id = 1n;
         mint_fee = mint_fee;
         fusion_fee = fusion_fee;
-        list_fee = 1tez;
         fight_addr = dummy_address;
         tournament_addr = dummy_address;
         attribute_addr = dummy_address;
         ability_addr = dummy_address;
         admin = (admin_address : address);
+        mints = Set.empty;
         fighters = Big_map.empty;
         fighters_by_owner = Big_map.empty
     } in
@@ -201,6 +201,23 @@ let test =
     let d : fighter_storage = Test.get_storage_of_address fighter_addr |> Test.decompile in
     let _ = Test.assert (d.next_id = 3n) in
 
+    // Real minting
+    let _ = Test.set_source admin_address in
+    let _ = 
+        (match Test.transfer_to_contract fighter_contract
+            (RealMint (alice_token,0xfb0504030201fb0101010101,0x00)) 0tez with
+        | Success _ -> true
+        | Fail err -> Test.failwith err )
+        |> Test.assert 
+    in
+    let _ = 
+        (match Test.transfer_to_contract fighter_contract
+            (RealMint (bob_token,0xfb060708090Afb0101010101,0x00)) 0tez with
+        | Success _ -> true
+        | Fail err -> Test.failwith err )
+        |> Test.assert 
+    in
+
     // Some probing
     let _ = Test.println "Probing Alice and Bob mints" in
     let _ = dump alice_token in
@@ -308,13 +325,26 @@ let test =
     let _ =  Test.transfer_to_contract fighter_contract (Mint) mint_fee in
     let alice_token1 : fighter_id = 3n in
     let alice_token2 : fighter_id = 4n in
+    let _ = Test.set_source admin_address in    
+    let _ =  Test.transfer_to_contract fighter_contract (RealMint (alice_token1,0xfb0504030201fb0101010101,0x00)) 0tez in
+    let _ =  Test.transfer_to_contract fighter_contract (RealMint (alice_token2,0xfb1514131211fb0101010101,0x00)) 0tez in
+    let _ = Test.set_source alice_address in
     let _ = 
         (match Test.transfer_to_contract fighter_contract (Fusion (alice_token1, alice_token2)) fusion_fee with
         | Success _ -> true
         | Fail err -> Test.failwith err )
         |> Test.assert 
     in
-    let alice_token3 : fighter_id = 5n in
+    let alice_token3 : fighter_id = 5n in    
+    // Real minting
+    let _ = Test.set_source admin_address in
+    let _ = 
+        (match Test.transfer_to_contract fighter_contract
+            (RealMint (alice_token3,0xfb5554535251fb1111111111,0x00)) 0tez with
+        | Success _ -> true
+        | Fail err -> Test.failwith err )
+        |> Test.assert 
+    in
     let _ = Test.println "Probing Alice's fusion" in
     let _ = dump alice_token1 in
     let _ = dump alice_token2 in

@@ -1,7 +1,7 @@
 #if !ATTRIBUTE_SCHEMA
 #define ATTRIBUTE_SCHEMA
 
-type attribute_value = nat
+type attribute_value = bytes
 
 // Type definition for skin (tree of genes)
 type attribute_skin = bytes
@@ -12,10 +12,8 @@ type attribute_skin_node = bytes * nat * nat (* id, size, likelihood *)
 type attribute_data = {
     id: fighter_id;
     xp: nat;
-    str: attribute_value;
-    agi: attribute_value;
-    con: attribute_value;
-    spd: attribute_value;
+    val: attribute_value;
+    pot: attribute_value;
     skin: attribute_skin
 }
 
@@ -34,7 +32,7 @@ type attribute_parameter =
 | SetSkinNodes of nat * (attribute_skin_node list)
 | SetSkinLeaves of nat * (attribute_skin_node list)
 | EarnXP of fighter_id * nat
-| Mint of fighter_id
-| Fusion of fighter_id * fighter_id * fighter_id
+| Mint of fighter_id * bytes
+| Fusion of fighter_id * fighter_id * fighter_id * bytes
 
 #endif

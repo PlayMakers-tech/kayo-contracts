@@ -35,8 +35,8 @@ type ability_parameter =
 | SetProbaRarity of rarity * nat
 | SetAmountRarity of rarity * nat
 | CreateAbility of rarity list
-| Mint of fighter_id
-| Fusion of fighter_id * fighter_id * fighter_id
+| Mint of fighter_id * bytes
+| Fusion of fighter_id * fighter_id * fighter_id * bytes
 | LearnAbility of fighter_id * ability_id
 | ForgetAbility of fighter_id * ability_id
 
