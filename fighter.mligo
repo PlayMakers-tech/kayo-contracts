@@ -89,6 +89,9 @@ let set_attribute_addr (addr, d : address * fighter_storage) =
 let set_ability_addr (addr, d : address * fighter_storage) =
     let _ = _admin_only d in
     [], {d with ability_addr = addr}
+let set_marketfighter_addr (addr, d : address * fighter_storage) =
+    let _ = _admin_only d in
+    [], {d with marketfighter_addr = addr}
 
 let set_fighter_state (id,fight,tournament,queue,d:
         fighter_id * fight_id * tournament_id * fight_queue * fighter_storage) =
@@ -135,10 +138,9 @@ let fusion (father, mother, d: fighter_id * fighter_id * fighter_storage) =
     }
 
 
-// TODO Add Marketplace address here
 let set_fighter_listed (id, state, d: fighter_id * bool * fighter_storage) =
     let f  = _get_fighter_data (id, d) in
-    if not (Set.mem (Tezos.get_sender ()) (Set.literal [d.admin]))
+    if not (Set.mem (Tezos.get_sender ()) (Set.literal [d.admin;d.marketfighter_addr]))
     then failwith ERROR.rights_other
     else [], { d with
             fighters = Big_map.update id 
@@ -149,7 +151,7 @@ let set_fighter_listed (id, state, d: fighter_id * bool * fighter_storage) =
 
 let transfer (id, addr, d: fighter_id * address * fighter_storage) =
     let f  = _get_fighter_data (id, d) in
-    if not (Set.mem (Tezos.get_sender ()) (Set.literal [f.owner;d.admin;d.fight_addr;d.tournament_addr]))
+    if not (Set.mem (Tezos.get_sender ()) (Set.literal [f.owner;d.admin;d.fight_addr;d.tournament_addr;d.marketfighter_addr]))
     then failwith ERROR.rights_owner
     else
     let _ = beforeTransfer f in 
@@ -179,6 +181,7 @@ let main (action, d: fighter_parameter * fighter_storage) =
     | SetTournamentAddr addr -> set_tournament_addr(addr,d)
     | SetAttributeAddr addr -> set_attribute_addr(addr,d)
     | SetAbilityAddr addr -> set_ability_addr(addr,d)
+    | SetMarketfighterAddr addr -> set_marketfighter_addr(addr,d)
     | Fusion (father,mother) -> fusion(father,mother,d)
     | SetFighterListed (id,state) -> set_fighter_listed(id,state,d)
     | Transfer (id,addr) -> transfer(id,addr,d)
@@ -198,5 +201,6 @@ let main (action, d: fighter_parameter * fighter_storage) =
     fight = d.fight_addr;
     tournament = d.tournament_addr;
     attribute = d.attribute_addr;
-    ability = d.ability_addr
+    ability = d.ability_addr;
+    marketfighter = d.marketfighter_addr
 }

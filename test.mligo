@@ -21,6 +21,8 @@ let test =
     let fight_fee = 0.5tez in
     let tournament_fee = 0.7tez in
     let fusion_fee = 20tez in
+    let listing_fee = 0.1tez in
+    let min_listing_price = 8tez in
     let _ = Test.set_source admin_address in
 
     // Fighter contract
@@ -32,6 +34,7 @@ let test =
         tournament_addr = dummy_address;
         attribute_addr = dummy_address;
         ability_addr = dummy_address;
+        marketfighter_addr = dummy_address;
         admin = (admin_address : address);
         mints = Set.empty;
         fighters = Big_map.empty;
@@ -107,17 +110,33 @@ let test =
     let ability_contract = Test.to_contract ability_typed_addr in
 
     // Attribute contract
-	let init_store: attribute_storage = {
-	    fight_addr = (fight_addr: address);
-	    fighter_addr = (fighter_addr: address);
+    let init_store: attribute_storage = {
+        fight_addr = (fight_addr: address);
+        fighter_addr = (fighter_addr: address);
         admin = (admin_address : address);
         skin_nodes = (1n, [(0x10,1n,1n)]);
         skin_leaves = (1n, [(0x00,2n,1n)]);
-	    attributes = Big_map.empty
-	} in
+        attributes = Big_map.empty
+    } in
     let attribute_addr, _, _ = Test.originate_from_file "attribute.mligo" "main" [] (Test.eval init_store) 0tez in
     let attribute_typed_addr: (attribute_parameter, attribute_storage) typed_address = Test.cast_address attribute_addr in
     let attribute_contract = Test.to_contract attribute_typed_addr in
+
+    // Marketfighter contract
+    let init_store: marketfighter_storage = {
+        is_open = true;
+        listing_fee = listing_fee;
+        fighter_addr = (fighter_addr: address);
+        admin = (admin_address: address);
+        min_price = min_listing_price;
+        listed_offer = Set.empty;
+        listed_sale = Set.empty;
+        sells = Big_map.empty;
+        buys = Big_map.empty;
+    } in
+    let marketfighter_addr, _, _ = Test.originate_from_file "marketfighter.mligo" "main" [] (Test.eval init_store) 0tez in
+    let marketfighter_typed_addr: (marketfighter_parameter, marketfighter_storage) typed_address = Test.cast_address marketfighter_addr in
+    let marketfighter_contract = Test.to_contract marketfighter_typed_addr in
 
     // Cross-set contract addresses    
     let _ = 
@@ -134,6 +153,12 @@ let test =
     in
     let _ = 
         (match Test.transfer_to_contract fighter_contract (SetAttributeAddr attribute_addr) 0tez with
+        | Success _ -> true
+        | _ -> false )
+        |> Test.assert 
+    in
+    let _ = 
+        (match Test.transfer_to_contract fighter_contract (SetMarketfighterAddr marketfighter_addr) 0tez with
         | Success _ -> true
         | _ -> false )
         |> Test.assert 
@@ -350,5 +375,98 @@ let test =
     let _ = dump alice_token2 in
     let _ = dump alice_token3 in
 
+    // Market fighter
+
+    // Place an offer and sell at the right price
+    let _ = Test.set_source alice_address in
+    let _ =  Test.transfer_to_contract fighter_contract (Mint) mint_fee in
+    let token : fighter_id = 6n in
+    let _ = Test.set_source admin_address in    
+    let _ =  Test.transfer_to_contract fighter_contract (RealMint (token,0xfb0504030201fb0101010101,0x00)) 0tez in
+    let _ = Test.set_source bob_address in
+    let _ = 
+        (match Test.transfer_to_contract marketfighter_contract (Buy (token, 15tez)) 15tez with
+        | Success _ -> true
+        | Fail err -> Test.failwith err )
+        |> Test.assert 
+    in
+    let _ = Test.set_source alice_address in
+    let _ = 
+        (match Test.transfer_to_contract marketfighter_contract (Sell (token, 15tez)) listing_fee with
+        | Success _ -> true
+        | Fail err -> Test.failwith err )
+        |> Test.assert 
+    in    
+    let _ = Test.println "Should be owned by Bob" in
+    let _ = dump token in
+
+    // Place an offer and sell at a higher price
+    let _ = Test.set_source alice_address in
+    let _ =  Test.transfer_to_contract fighter_contract (Mint) mint_fee in
+    let token : fighter_id = 7n in
+    let _ = Test.set_source admin_address in    
+    let _ =  Test.transfer_to_contract fighter_contract (RealMint (token,0xfb0504030201fb0101010101,0x00)) 0tez in
+    let _ = Test.set_source bob_address in
+    let _ = 
+        (match Test.transfer_to_contract marketfighter_contract (Buy (token, 15tez)) 15tez with
+        | Success _ -> true
+        | Fail err -> Test.failwith err )
+        |> Test.assert 
+    in
+    let _ = Test.set_source alice_address in
+    let _ = 
+        (match Test.transfer_to_contract marketfighter_contract (Sell (token, 15.1tez)) listing_fee with
+        | Success _ -> true
+        | Fail err -> Test.failwith err )
+        |> Test.assert 
+    in
+    let _ = Test.println "Should be owned by Alice" in
+    let _ = dump token in
+
+    // Place a sale and buy at the right price
+    let _ = Test.set_source alice_address in
+    let _ =  Test.transfer_to_contract fighter_contract (Mint) mint_fee in
+    let token : fighter_id = 8n in
+    let _ = Test.set_source admin_address in    
+    let _ =  Test.transfer_to_contract fighter_contract (RealMint (token,0xfb0504030201fb0101010101,0x00)) 0tez in
+    let _ = Test.set_source alice_address in
+    let _ = 
+        (match Test.transfer_to_contract marketfighter_contract (Sell (token, 15tez)) listing_fee with
+        | Success _ -> true
+        | Fail err -> Test.failwith err )
+        |> Test.assert 
+    in
+    let _ = Test.set_source bob_address in
+    let _ = 
+        (match Test.transfer_to_contract marketfighter_contract (Buy (token, 15tez)) 15tez with
+        | Success _ -> true
+        | Fail err -> Test.failwith err )
+        |> Test.assert 
+    in
+    let _ = Test.println "Should be owned by Bob" in
+    let _ = dump token in
+
+    // Place a sale and buy at a lower price
+    let _ = Test.set_source alice_address in
+    let _ =  Test.transfer_to_contract fighter_contract (Mint) mint_fee in
+    let token : fighter_id = 9n in
+    let _ = Test.set_source admin_address in    
+    let _ =  Test.transfer_to_contract fighter_contract (RealMint (token,0xfb0504030201fb0101010101,0x00)) 0tez in
+    let _ = Test.set_source alice_address in
+    let _ = 
+        (match Test.transfer_to_contract marketfighter_contract (Sell (token, 15tez)) listing_fee with
+        | Success _ -> true
+        | Fail err -> Test.failwith err )
+        |> Test.assert 
+    in
+    let _ = Test.set_source bob_address in
+    let _ = 
+        (match Test.transfer_to_contract marketfighter_contract (Buy (token, 14.9tez)) 14.9tez with
+        | Success _ -> true
+        | Fail err -> Test.failwith err )
+        |> Test.assert 
+    in
+    let _ = Test.println "Should be owned by Alice" in
+    let _ = dump token in
 
     ()

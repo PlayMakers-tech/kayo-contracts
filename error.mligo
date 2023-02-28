@@ -5,7 +5,7 @@ module ERROR =
   struct
 	type t = string
 
-	let listed        = "The fighter is listed on the marketplace"
+	let listed        = "The fighter is listed in a marketplace"
 	let inactive      = "The fighter is inactive"
 	let minting       = "The fighter is not fully minted yet"
 	let queued        = "The fighter is in a queue"
@@ -42,6 +42,10 @@ module ERROR =
 	let cant_start_next_phase = "Can't start next phase of this tournament"
 
 	let wrong_proba_skin = "Issue with probabilities in skin_nodes/leaves setup"
+
+	let min_price     = "Minimum price not reached"
+	let already_owned = "Fighter already owned"
+	let not_listed    = "Fighter not listed"
 
 end
 

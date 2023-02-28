@@ -28,6 +28,7 @@ type fighter_storage = {
     tournament_addr: address;
     attribute_addr: address;
     ability_addr: address;
+    marketfighter_addr: address;
     admin: address;
     mints: fighter_id set;
     fighters: (fighter_id, fighter_data) big_map;
@@ -43,6 +44,7 @@ type fighter_parameter =
 | SetTournamentAddr of address
 | SetAttributeAddr of address
 | SetAbilityAddr of address
+| SetMarketfighterAddr of address
 | Fusion of fighter_id * fighter_id
 | SetFighterListed of fighter_id * bool
 | Transfer of fighter_id * address

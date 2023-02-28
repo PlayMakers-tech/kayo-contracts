@@ -3,3 +3,4 @@
 #include "tournament.schema.mligo"
 #include "attribute.schema.mligo"
 #include "ability.schema.mligo"
+#include "marketfighter.schema.mligo"

@@ -7,6 +7,7 @@ let init_store: fighter_storage = {
     tournament_addr = ("tz3QE72w1vC613ZaeAZwW5fxwrBUQAstyaZy": address);
     attribute_addr = ("tz3QE72w1vC613ZaeAZwW5fxwrBUQAstyaZy": address);
     ability_addr = ("tz3QE72w1vC613ZaeAZwW5fxwrBUQAstyaZy": address);
+    marketfighter_addr = ("tz3QE72w1vC613ZaeAZwW5fxwrBUQAstyaZy": address);
     admin = ("tz3QE72w1vC613ZaeAZwW5fxwrBUQAstyaZy" : address);
     mints = Set.empty;
     fighters = Big_map.empty;
