@@ -155,7 +155,7 @@ let transfer (id, addr, d: fighter_id * address * fighter_storage) =
     then failwith ERROR.rights_owner
     else
     let _ = beforeTransfer f in 
-    let set = Set.add id (_get_fighters_by_owner (f.owner, d)) in
+    let set = Set.add id (_get_fighters_by_owner (addr, d)) in
     let fbo = Big_map.update addr (Some set) d.fighters_by_owner in
     let old = Set.remove id (_get_fighters_by_owner (f.owner, d)) in
     let fbo = Big_map.update f.owner (if (Set.cardinal old) = 0n then None else Some old) fbo in
