@@ -63,6 +63,7 @@ let sell (id, price, d : fighter_id * tez * marketfighter_storage) =
     else transaction (id, price, f.owner, buyer, d)
 
 (* TODO case where the buyer change price without canceling *)
+(* TODO case where the fighter is transferred to the buyer via another mean*)
 let buy (id, price, d : fighter_id * tez * marketfighter_storage) =
     if Tezos.get_amount () <> price then failwith ERROR.price
     else if price < d.min_price then failwith ERROR.min_price
