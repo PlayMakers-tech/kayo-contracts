@@ -16,6 +16,7 @@ module ERROR =
 	let minted        = "The fighter is already fully minted"
 
 	let invalid_fighter = "Invalid fighter"
+	let name_too_long   = "Fighter name too long"
 
 	let fee           = "Missing expected fee value"
 	let stake         = "Missing expected stake value"

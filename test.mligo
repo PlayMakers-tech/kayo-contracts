@@ -243,6 +243,15 @@ let test =
         |> Test.assert 
     in
 
+    // Naming
+    let _ = Test.set_source alice_address in
+    let _ = 
+        (match Test.transfer_to_contract fighter_contract (SetName (alice_token,"Alicia")) 0tez with
+        | Success _ -> true
+        | Fail err -> Test.failwith err )
+        |> Test.assert 
+    in
+
     // Some probing
     let _ = Test.println "Probing Alice and Bob mints" in
     let _ = dump alice_token in

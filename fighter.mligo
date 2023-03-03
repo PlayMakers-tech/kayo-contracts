@@ -32,7 +32,8 @@ let new_fighter (id, owner: fighter_id * address) =
         tournament = 0n;
         queue = NotQueuing;
         father = 0n;
-        mother = 0n
+        mother = 0n;
+        name = ""
 
     } : fighter_data)
 
@@ -165,6 +166,16 @@ let transfer (id, addr, d: fighter_id * address * fighter_storage) =
         fighters_by_owner = fbo;
     }
 
+let set_name (id, name, d: fighter_id * string * fighter_storage) =
+    if String.length name > 32n then failwith ERROR.name_too_long
+    else let f  = _get_fighter_data (id, d) in
+    if Tezos.get_sender () <> f.owner
+    then failwith ERROR.rights_owner
+    else let _ = beforeTransfer f in 
+    [], { d with
+        fighters = Big_map.update id (Some {f with name = name}) d.fighters
+    }
+
 let sink_fees (addr, d: address * fighter_storage) =
     let _ = _admin_only d in
     [Tezos.transaction unit (Tezos.get_balance ()) (Tezos.get_contract addr)], d
@@ -185,6 +196,7 @@ let main (action, d: fighter_parameter * fighter_storage) =
     | Fusion (father,mother) -> fusion(father,mother,d)
     | SetFighterListed (id,state) -> set_fighter_listed(id,state,d)
     | Transfer (id,addr) -> transfer(id,addr,d)
+    | SetName (id,name) -> set_name(id,name,d)
     | SetFighterState (id,fight,tournament,queue) -> set_fighter_state(id,fight,tournament,queue,d)
     | SinkFees addr -> sink_fees(addr,d)
     : (operation list * fighter_storage))

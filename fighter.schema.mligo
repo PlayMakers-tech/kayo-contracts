@@ -16,7 +16,8 @@ type fighter_data = {
     tournament: tournament_id;
     queue: fight_queue;
     father: fighter_id;
-    mother: fighter_id
+    mother: fighter_id;
+    name: string
 }
 
 
@@ -48,6 +49,7 @@ type fighter_parameter =
 | Fusion of fighter_id * fighter_id
 | SetFighterListed of fighter_id * bool
 | Transfer of fighter_id * address
+| SetName of fighter_id * string
 | SetFighterState of fighter_id * fight_id * tournament_id * fight_queue
 | SinkFees of address
 
