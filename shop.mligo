@@ -78,6 +78,9 @@ let _increment_item (item, qty, addr, d: shop_item * nat * address * shop_storag
 let buy_item (item, qty, d: shop_item * nat * shop_storage) =
     let data = _get_item_data (item,d) in
     let _ = if Tezos.get_amount () <> (data.price * qty) then failwith ERROR.price in
+    let _ = if data.quantity < qty then failwith "Not enough item availability" in
+    let data = { data with quantity = abs ((int data.quantity) - (int qty)) } in
+    let d = { d with items = Map.update item (Some data) d.items } in
     let addr = Tezos.get_sender () in
     let d  = _increment_item (item,qty,addr,d) in
     [], d
@@ -85,6 +88,9 @@ let buy_item (item, qty, d: shop_item * nat * shop_storage) =
 let buy_bundle (bundle, qty, d: shop_bundle * nat * shop_storage) =
     let data = _get_bundle_data (bundle,d) in    
     let _ = if Tezos.get_amount () <> (data.price * qty) then failwith ERROR.price in
+    let _ = if data.quantity < qty then failwith "Not enough item availability" in
+    let data = { data with quantity = abs ((int data.quantity) - (int qty)) } in
+    let d = { d with bundles = Map.update bundle (Some data) d.bundles } in
     let addr = Tezos.get_sender () in
     let folded = fun (dd,(i,n): shop_storage * (shop_item * nat)) ->
         _increment_item (i, qty*n, addr, dd) in
