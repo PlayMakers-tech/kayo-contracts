@@ -35,6 +35,7 @@ type shop_parameter =
 | NewBundle of shop_bundle_data
 | SetBundlePrice of shop_bundle * tez
 | DeleteBundle of shop_bundle
+| GrantItem of shop_item * nat * address
 | BuyItem of shop_item * nat
 | BuyBundle of shop_bundle * nat
 | ConsumeItem of shop_item * nat * address
