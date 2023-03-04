@@ -90,23 +90,21 @@ let rec _add_xp_and_lvl_up (attr, xp, lvl: attribute_data * nat * nat) : (attrib
 	_add_xp_and_lvl_up (attr, xp, lvl+1n)
 
 let earn_xp (id, xp, d: fighter_id * nat * attribute_storage) =
-    if not (Set.mem (Tezos.get_sender ()) (Set.literal [d.admin;d.fight_addr]))
-    then failwith ERROR.rights_other
-	else let attr = _get_attribute_data (id,d) in
+    let _ =  if not (Set.mem (Tezos.get_sender ()) (Set.literal [d.admin;d.fight_addr]))
+    then failwith ERROR.rights_other in
+	let attr = _get_attribute_data (id,d) in
 	let (attr, lvl) = _add_xp_and_lvl_up (attr,xp,0n) in
 	let op = if lvl = 0n then [] else [Tezos.emit "%levelUp" (id, lvl)] in
 	op, { d with attributes = Big_map.update id (Some attr) d.attributes }
 
 let mint (id, data, d: fighter_id * bytes * attribute_storage) =
-    if Tezos.get_sender () <> d.fighter_addr
-	then failwith ERROR.rights_other
-	else [], { d with attributes = Big_map.add id (new_attribute (id, data, d)) d.attributes }
+    let _ = if Tezos.get_sender () <> d.fighter_addr then failwith ERROR.rights_other in
+	[], { d with attributes = Big_map.add id (new_attribute (id, data, d)) d.attributes }
 
 // TODO The fusion needs to be reworked
 let fusion (id, father, mother, data, d: fighter_id * fighter_id * fighter_id * bytes * attribute_storage) =
-    if Tezos.get_sender () <> d.fighter_addr
-	then failwith ERROR.rights_other
-	else [], { d with attributes = Big_map.add id (fuse_attribute (id, father, mother, data, d)) d.attributes }
+    let _ = if Tezos.get_sender () <> d.fighter_addr then failwith ERROR.rights_other in
+	[], { d with attributes = Big_map.add id (fuse_attribute (id, father, mother, data, d)) d.attributes }
 
 let main (action, d: attribute_parameter * attribute_storage) = 
     ( match action with

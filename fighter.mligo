@@ -38,8 +38,7 @@ let new_fighter (id, owner: fighter_id * address) =
     } : fighter_data)
 
 let mint (d : fighter_storage) =
-    if Tezos.get_amount () <> d.mint_fee then failwith ERROR.fee
-    else
+    let _ = if Tezos.get_amount () <> d.mint_fee then failwith ERROR.fee in
     let owner = Tezos.get_sender () in
     [Tezos.emit "%minting" d.next_id],
     { d with
@@ -152,9 +151,8 @@ let set_fighter_listed (id, state, d: fighter_id * bool * fighter_storage) =
 
 let transfer (id, addr, d: fighter_id * address * fighter_storage) =
     let f  = _get_fighter_data (id, d) in
-    if not (Set.mem (Tezos.get_sender ()) (Set.literal [f.owner;d.admin;d.fight_addr;d.tournament_addr;d.marketfighter_addr]))
-    then failwith ERROR.rights_owner
-    else
+    let _ = if not (Set.mem (Tezos.get_sender ()) (Set.literal [f.owner;d.admin;d.fight_addr;d.tournament_addr;d.marketfighter_addr]))
+    then failwith ERROR.rights_owner in
     let _ = beforeTransfer f in 
     let set = Set.add id (_get_fighters_by_owner (addr, d)) in
     let fbo = Big_map.update addr (Some set) d.fighters_by_owner in
@@ -167,11 +165,10 @@ let transfer (id, addr, d: fighter_id * address * fighter_storage) =
     }
 
 let set_name (id, name, d: fighter_id * string * fighter_storage) =
-    if String.length name > 32n then failwith ERROR.name_too_long
-    else let f  = _get_fighter_data (id, d) in
-    if Tezos.get_sender () <> f.owner
-    then failwith ERROR.rights_owner
-    else let _ = beforeTransfer f in 
+    let _ = if String.length name > 32n then failwith ERROR.name_too_long in
+    let f  = _get_fighter_data (id, d) in
+    let _ = if Tezos.get_sender () <> f.owner then failwith ERROR.rights_owner in
+    let _ = beforeTransfer f in 
     [], { d with
         fighters = Big_map.update id (Some {f with name = name}) d.fighters
     }

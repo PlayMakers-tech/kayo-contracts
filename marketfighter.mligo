@@ -31,12 +31,11 @@ let transaction (id, price, seller, buyer, d : fighter_id * tez * address * addr
     }
 
 let sell (id, price, d : fighter_id * tez * marketfighter_storage) =
-    if Tezos.get_amount () <> d.listing_fee then failwith ERROR.fee
-    else if price < d.min_price then failwith ERROR.min_price
-    else let f = _get_fighter_data (id,d) in
+    let _ = if Tezos.get_amount () <> d.listing_fee then failwith ERROR.fee in
+    let _ = if price < d.min_price then failwith ERROR.min_price in
+    let f = _get_fighter_data (id,d) in
     let _ = beforeListing f in
-    if Tezos.get_sender () <> f.owner then failwith ERROR.rights_owner
-    else
+    let _ = if Tezos.get_sender () <> f.owner then failwith ERROR.rights_owner in
     (* If there is already an offer, we check if we can trade *)
     let (buyer, buy_price) : address * tez =
         if Set.mem id d.listed_offer then
@@ -65,12 +64,11 @@ let sell (id, price, d : fighter_id * tez * marketfighter_storage) =
 (* TODO case where the buyer change price without canceling *)
 (* TODO case where the fighter is transferred to the buyer via another mean*)
 let buy (id, price, d : fighter_id * tez * marketfighter_storage) =
-    if Tezos.get_amount () <> price then failwith ERROR.price
-    else if price < d.min_price then failwith ERROR.min_price
-    else let f = _get_fighter_data (id,d) in
+    let _ = if Tezos.get_amount () <> price then failwith ERROR.price in
+    let _ = if price < d.min_price then failwith ERROR.min_price in
+    let f = _get_fighter_data (id,d) in
     let buyer = Tezos.get_sender () in
-    if buyer = f.owner then failwith ERROR.already_owned
-    else
+    let _ = if buyer = f.owner then failwith ERROR.already_owned in
     let (sold, sell_price) : bool * tez = (match (Big_map.find_opt id d.sells) with
         | None -> (false, 0tez)
         | Some data -> ((data.price <= price), data.price)
@@ -102,16 +100,14 @@ let cancel (id, d : fighter_id * marketfighter_storage) =
     let f = _get_fighter_data (id,d) in
     let sender = Tezos.get_sender () in
     if sender = f.owner then
-        if Set.mem id d.listed_sale then failwith ERROR.not_listed
-        else
+        let _ = if Set.mem id d.listed_sale then failwith ERROR.not_listed in
         [Tezos.emit "%cancel_selling" id],
         { d with
             listed_sale = Set.remove id d.listed_sale;
             sells = Big_map.update id None d.sells
         }
     else
-        if Set.mem id d.listed_offer then failwith ERROR.not_listed
-        else
+        let _ = if Set.mem id d.listed_offer then failwith ERROR.not_listed in
         let (buy_map,data) = (match (Big_map.find_opt id d.buys) with
             | None -> failwith ERROR.not_listed
             | Some map -> (Map.update sender None map, Map.find_opt sender map)

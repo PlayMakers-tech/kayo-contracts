@@ -83,15 +83,14 @@ let new_fight (id, a, b, round_cnt, stake: fight_id * fighter_id * fighter_id * 
 
 let create_fight (a, b, round_cnt, stake, d: 
 		fighter_id * fighter_id * round_amount * fight_stake * fight_storage) =
-    if not (Set.mem (Tezos.get_sender ()) (Set.literal [d.admin;d.tournament_addr]))
-    then failwith ERROR.rights_other
-    else let fa = _get_fighter_data (a,d) in
-    if (fa.listed || fa.fight>0n) then failwith ERROR.unavailable_fighter "a"
-    else let fb = _get_fighter_data (b,d) in
-    if (fb.listed || fb.fight>0n) then failwith ERROR.unavailable_fighter "b"
-    else 
-    if (fa.queue <> fb.queue) then failwith ERROR.different_queue
-    else let queue_set = _get_fighters_in_queue (fa.queue,d) in
+    let _ = if not (Set.mem (Tezos.get_sender ()) (Set.literal [d.admin;d.tournament_addr]))
+    then failwith ERROR.rights_other in
+    let fa = _get_fighter_data (a,d) in
+    let _ = if (fa.listed || fa.fight>0n) then failwith ERROR.unavailable_fighter "a" in
+    let fb = _get_fighter_data (b,d) in
+    let _ = if (fb.listed || fb.fight>0n) then failwith ERROR.unavailable_fighter "b" in
+    let _ = if (fa.queue <> fb.queue) then failwith ERROR.different_queue in
+    let queue_set = _get_fighters_in_queue (fa.queue,d) in
 	[Tezos.transaction (SetFighterState (a,d.next_id,fa.tournament,NotQueuing)) 0tez (Tezos.get_contract d.fighter_addr);
 	 Tezos.transaction (SetFighterState (b,d.next_id,fb.tournament,NotQueuing)) 0tez (Tezos.get_contract d.fighter_addr);
      Tezos.emit "%newFight" (d.next_id, a, b)],
@@ -104,9 +103,8 @@ let create_fight (a, b, round_cnt, stake, d:
 let resolve_round (id, round, result, data, d: fight_id * nat * int * round_data * fight_storage) =
     let _ = _admin_only d in
 	let f = _get_fight_data (id,d) in
-    if round <> (List.size f.rounds) +1n
-    then failwith ERROR.invalid_round
-    else let d = { d with
+    let _ = if round <> (List.size f.rounds) +1n then failwith ERROR.invalid_round in
+    let d = { d with
     	fights = Big_map.update id 
                 (Some { f with 
                     rounds = data::f.rounds;
@@ -124,26 +122,24 @@ let set_strategy (_id, _a, _data, _d: fight_id * fighter_id * strategy_data * fi
 
 let add_to_queue (a, queue, d: fighter_id * fight_queue * fight_storage) =
 	let fa = _get_fighter_data (a,d) in
-    if Tezos.get_sender () <> fa.owner
-    then failwith ERROR.rights_owner
-    else let _ = (match queue with
+    let _ = if Tezos.get_sender () <> fa.owner then failwith ERROR.rights_owner in
+    let _ = (match queue with
     	| NoStakeQ -> if Tezos.get_amount () <> d.fight_fee then failwith ERROR.fee
     	| FighterStakeQ -> if Tezos.get_amount () <> d.fight_fee then failwith ERROR.fee
     	| TezStakeQ v -> if Tezos.get_amount () <> (d.fight_fee + v) then failwith ERROR.stake
         | _ -> failwith ERROR.invalid_queue
     ) in
-    if fa.listed || fa.queue <> NotQueuing || fa.tournament <> 0n || fa.fight <> 0n
-    then failwith ERROR.occupied
-	else let queue_set = _get_fighters_in_queue (queue,d) in
+    let _ = if fa.listed || fa.queue <> NotQueuing || fa.tournament <> 0n || fa.fight <> 0n
+    then failwith ERROR.occupied in
+	let queue_set = _get_fighters_in_queue (queue,d) in
     [Tezos.transaction (SetFighterState (a,0n,0n,queue)) 0tez (Tezos.get_contract d.fighter_addr);
      Tezos.emit "%addedToQueue" (a, queue)],
     { d with queues = Big_map.update queue (Some (Set.add a queue_set)) d.queues }
 
 let cancel_queue (a, d: fighter_id * fight_storage) =
 	let fa = _get_fighter_data (a,d) in
-    if Tezos.get_sender () <> fa.owner
-    then failwith ERROR.rights_owner
-	else let op = (match fa.queue with
+    let _ = if Tezos.get_sender () <> fa.owner then failwith ERROR.rights_owner in
+	let op = (match fa.queue with
 		| NotQueuing -> failwith ERROR.not_in_queue
 		| NoStakeQ -> [Tezos.transaction (SetFighterState (a,0n,0n,NotQueuing)) 0tez (Tezos.get_contract d.fighter_addr)]	
 		| FighterStakeQ -> [Tezos.transaction (SetFighterState (a,0n,0n,NotQueuing)) 0tez (Tezos.get_contract d.fighter_addr)]	

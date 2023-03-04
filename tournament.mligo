@@ -50,9 +50,8 @@ let create_tournament (stake, stamp, d: tournament_stake * timestamp * tournamen
 let cancel_tournament (id, d: tournament_id * tournament_storage) =
     let _ = _admin_only d in
     let t = _get_tournament_data (id,d) in
-    if t.state <> Open
-    then failwith ERROR.cancel_not_open
-	else let _free_fighters (op, fid : operation list * fighter_id) : operation list =
+    let _ = if t.state <> Open then failwith ERROR.cancel_not_open in
+	let _free_fighters (op, fid : operation list * fighter_id) : operation list =
 		(Tezos.transaction (SetFighterState (fid,0n,0n,NotQueuing)) 0tez (Tezos.get_contract d.fighter_addr))::op
 	in
 	(Set.fold _free_fighters t.fighters []), { d with
@@ -62,14 +61,12 @@ let cancel_tournament (id, d: tournament_id * tournament_storage) =
 
 let join_tournament (id, a, d: tournament_id * fighter_id * tournament_storage) =
 	let t = _get_tournament_data (id,d) in
-    if t.state <> Open
-    then failwith ERROR.join_not_open
-	else let fa = _get_fighter_data (a,d) in
-	if Tezos.get_sender () <> fa.owner
-	then failwith ERROR.rights_owner
-	else if fa.listed || fa.tournament <> 0n || fa.fight <> 0n || fa.queue <> NotQueuing
-	then failwith ERROR.occupied
-	else let _ = (match t.stake with
+    let _ = if t.state <> Open then failwith ERROR.join_not_open in
+	let fa = _get_fighter_data (a,d) in
+	let _ = if Tezos.get_sender () <> fa.owner then failwith ERROR.rights_owner in
+	let _ = if fa.listed || fa.tournament <> 0n || fa.fight <> 0n || fa.queue <> NotQueuing
+	then failwith ERROR.occupied in
+	let _ = (match t.stake with
 		| NoStake -> if Tezos.get_amount () <> d.tournament_fee then failwith ERROR.fee
 		| FighterStake -> if Tezos.get_amount () <> d.tournament_fee then failwith ERROR.fee
 		| TezStake v -> if Tezos.get_amount () <> (d.tournament_fee + v)  then failwith ERROR.stake
@@ -83,9 +80,8 @@ let join_tournament (id, a, d: tournament_id * fighter_id * tournament_storage) 
 let generate_tree (id, seed, d: tournament_id * nat * tournament_storage) =
     let _ = _admin_only d in
     let t = _get_tournament_data (id,d) in
-    if t.state <> Open
-    then failwith ERROR.close_not_open
-	else let _score_map (map, fid: (fighter_id, int) map * fighter_id) : (fighter_id, int) map =
+    let _ = if t.state <> Open then failwith ERROR.close_not_open in
+	let _score_map (map, fid: (fighter_id, int) map * fighter_id) : (fighter_id, int) map =
 		Map.add fid 0 map
 	in
 	let t = { t with 
@@ -97,11 +93,10 @@ let generate_tree (id, seed, d: tournament_id * nat * tournament_storage) =
 let next_phase (id, d: tournament_id * tournament_storage) =
     let _ = _admin_only d in
     let t = _get_tournament_data (id,d) in
-    if Set.cardinal t.pending_fights <> 0n
-    then failwith ERROR.pending_fights
-    else if t.state <> (Closed: tournament_state) && t.state <> (OnGoing: tournament_state)
-    then failwith ERROR.cant_start_next_phase
-    else failwith "Not implemented yet"
+    let _ = if Set.cardinal t.pending_fights <> 0n then failwith ERROR.pending_fights in
+    let _ = if t.state <> (Closed: tournament_state) && t.state <> (OnGoing: tournament_state)
+    then failwith ERROR.cant_start_next_phase in
+    failwith "Not implemented yet"
     // Don't forget to remove from active_tournaments
 
 

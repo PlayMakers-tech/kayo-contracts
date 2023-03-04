@@ -36,12 +36,10 @@ let new_ability (id,r: ability_id * rarity) : ability_data = {
 let _learn_ability (fid, aid, d: fighter_id * ability_id * ability_storage) =
 	let a = _get_ability_data (aid, d) in
 	let amount = Option.unopt (Map.find_opt a.rarity d.amount_rarity) in
-	if amount > 0n && a.cnt >= amount
-	then failwith ERROR.rarity_overload
-	else let known = _get_fighter_abilities (fid, d) in
-	if Set.mem aid known
-	then failwith ERROR.ability_known
-	else let d = { d with
+	let _ = if amount > 0n && a.cnt >= amount then failwith ERROR.rarity_overload in
+	let known = _get_fighter_abilities (fid, d) in
+	let _ = if Set.mem aid known then failwith ERROR.ability_known in
+	let d = { d with
 		fighter_abilities = Big_map.update fid (Some (Set.add aid known)) d.fighter_abilities;
 		abilities = Big_map.update aid (Some {a with cnt = a.cnt + 1n}) d.abilities
 	} in
@@ -100,11 +98,9 @@ let create_ability (rl, d : rarity list * ability_storage) =
     [], _create_ability (rl, d)
 
 let mint (id, data, d: fighter_id * bytes * ability_storage) =
-    if Tezos.get_sender () <> d.fighter_addr
-    then failwith ERROR.rights_other
-	else let d = { d with fighter_abilities = Big_map.add id Set.empty d.fighter_abilities } in
-	if data<>0x00 then failwith "Minting with forced abilities not implemented yet"
-    else
+    let _ = if Tezos.get_sender () <> d.fighter_addr then failwith ERROR.rights_other in
+	let d = { d with fighter_abilities = Big_map.add id Set.empty d.fighter_abilities } in
+	let _ = if data<>0x00 then failwith "Minting with forced abilities not implemented yet" in
 	let d = _learn_rand_ability (id, d) in
 	let d = _learn_rand_ability (id, d) in
 	let d = _learn_rand_ability (id, d) in
@@ -115,27 +111,22 @@ let mint (id, data, d: fighter_id * bytes * ability_storage) =
 
 // TODO Fusion most likely to be reworked (this currently ignores rarity count)
 let fusion (id, father, mother, data, d: fighter_id * fighter_id * fighter_id * bytes * ability_storage) =
-    if Tezos.get_sender () <> d.fighter_addr
-    then failwith ERROR.rights_other
-	else let set = _get_fighter_abilities (father, d) in
-	if data<>0x00 then failwith "Fusion with forced abilities not implemented yet"
-    else
+    let _ = if Tezos.get_sender () <> d.fighter_addr then failwith ERROR.rights_other in
+	let set = _get_fighter_abilities (father, d) in
+	let _ = if data<>0x00 then failwith "Fusion with forced abilities not implemented yet" in
 	let merge (a, aid: ability_id set * ability_id) : ability_id set = Set.add aid a in
 	let set = Set.fold merge (_get_fighter_abilities (mother, d)) set in
 	[], { d with fighter_abilities = Big_map.add id set d.fighter_abilities }
 
 let learn_ability (fid, aid, d: fighter_id * ability_id * ability_storage) =
-    if Tezos.get_sender () <> d.fighter_addr
-    then failwith ERROR.rights_other
-	else [], (_learn_ability (fid, aid, d))
+    let _ = if Tezos.get_sender () <> d.fighter_addr then failwith ERROR.rights_other in
+	[], (_learn_ability (fid, aid, d))
 
 let forget_ability (fid, aid, d: fighter_id * ability_id * ability_storage) =
-    if Tezos.get_sender () <> d.fighter_addr
-    then failwith ERROR.rights_other
-	else let known = _get_fighter_abilities (fid, d) in
-	if not (Set.mem aid known)
-	then failwith ERROR.ability_unknown
-	else [], { d with
+    let _ = if Tezos.get_sender () <> d.fighter_addr then failwith ERROR.rights_other in
+	let known = _get_fighter_abilities (fid, d) in
+	let _ = if not (Set.mem aid known) then failwith ERROR.ability_unknown in
+	[], { d with
 		fighter_abilities = Big_map.update fid (Some (Set.remove aid known)) d.fighter_abilities
 	}
 
