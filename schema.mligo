@@ -4,3 +4,4 @@
 #include "attribute.schema.mligo"
 #include "ability.schema.mligo"
 #include "marketfighter.schema.mligo"
+#include "shop.schema.mligo"
