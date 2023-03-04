@@ -6,10 +6,10 @@ let _admin_only (d: fight_storage) =
     if Tezos.get_sender () <> d.admin then failwith ERROR.rights_admin
 
 let _get_fighter_data (a,d: fighter_id * fight_storage) =
-    (Option.unopt_with_error (Tezos.call_view "get_fighter_data" a d.fighter_addr) "Invalid fighter_id"
+    (Option.unopt_with_error (Tezos.call_view "get_fighter_data" a d.fighter_addr) ERROR.fighter_id
     : fighter_data)
 let _get_fight_data (id, d: fight_id * fight_storage) =
-    Option.unopt_with_error (Big_map.find_opt id d.fights) "Invalid fight_id"
+    Option.unopt_with_error (Big_map.find_opt id d.fights) ERROR.fight_id
 let _get_fighters_in_queue (q, d: fight_queue * fight_storage): fighter_id set =
     match (Big_map.find_opt q d.queues) with
     | Some x -> x

@@ -4,7 +4,7 @@
 let _admin_only (d: marketfighter_storage) =
     if Tezos.get_sender () <> d.admin then failwith ERROR.rights_admin
 let _get_fighter_data (a, d: fighter_id * marketfighter_storage) =
-    (Option.unopt_with_error (Tezos.call_view "get_fighter_data" a d.fighter_addr) "Invalid fighter_id"
+    (Option.unopt_with_error (Tezos.call_view "get_fighter_data" a d.fighter_addr) ERROR.fighter_id
     : fighter_data)
 
 let beforeListing (f: fighter_data) =

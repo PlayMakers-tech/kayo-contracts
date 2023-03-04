@@ -6,13 +6,13 @@ let _admin_only (d: ability_storage) =
     if Tezos.get_sender () <> d.admin then failwith ERROR.rights_admin
 
 let _get_ability_data (id, d: ability_id * ability_storage) =
-    Option.unopt_with_error (Big_map.find_opt id d.abilities) "Invalid ability_id"
+    Option.unopt_with_error (Big_map.find_opt id d.abilities) ERROR.ability_id
 let _get_fighter_abilities (id, d: fighter_id * ability_storage) =
-    Option.unopt_with_error (Big_map.find_opt id d.fighter_abilities) "Invalid fighter_id"
+    Option.unopt_with_error (Big_map.find_opt id d.fighter_abilities) ERROR.fighter_id
 let _get_available_abilities (r, d: rarity * ability_storage) =
-    Option.unopt_with_error (Big_map.find_opt r d.available_abilities) "Invalid rarity"
+    Option.unopt_with_error (Big_map.find_opt r d.available_abilities) ERROR.rarity
 let _get_proba_rarity (r, d: rarity * ability_storage) =
-    Option.unopt_with_error (Map.find_opt r d.proba_rarity) "Invalid rarity"
+    Option.unopt_with_error (Map.find_opt r d.proba_rarity) ERROR.rarity
 
 
 let set_fighter_addr (addr, d : address * ability_storage) =

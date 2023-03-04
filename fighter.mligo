@@ -6,7 +6,7 @@
 let _admin_only (d: fighter_storage) =
     if Tezos.get_sender () <> d.admin then failwith ERROR.rights_admin
 let _get_fighter_data (id, d: fighter_id * fighter_storage) =
-    Option.unopt_with_error (Big_map.find_opt id d.fighters) "Invalid fighter_id"
+    Option.unopt_with_error (Big_map.find_opt id d.fighters) ERROR.fighter_id
 let _get_fighters_by_owner (owner, d: address * fighter_storage) : fighter_id set =
     match (Big_map.find_opt owner d.fighters_by_owner) with
     | Some x -> x

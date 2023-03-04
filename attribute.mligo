@@ -6,7 +6,7 @@ let _admin_only (d: attribute_storage) =
     if Tezos.get_sender () <> d.admin then failwith ERROR.rights_admin
 
 let _get_attribute_data (id, d: fighter_id * attribute_storage) =
-    Option.unopt_with_error (Big_map.find_opt id d.attributes) "Invalid fighter_id"
+    Option.unopt_with_error (Big_map.find_opt id d.attributes) ERROR.fighter_id
 
 let _get_xp_from_lvl (lvl: nat) =
 	lvl*lvl*10n

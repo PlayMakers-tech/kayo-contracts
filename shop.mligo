@@ -4,9 +4,9 @@
 let _admin_only (d: shop_storage) =
     if Tezos.get_sender () <> d.admin then failwith ERROR.rights_admin
 let _get_item_data (a, d: shop_item * shop_storage) =
-    (Option.unopt_with_error (Map.find_opt a d.items) "Invalid shop_item" : shop_item_data)
+    (Option.unopt_with_error (Map.find_opt a d.items) ERROR.shop_item : shop_item_data)
 let _get_bundle_data (a, d: shop_bundle * shop_storage) =
-    (Option.unopt_with_error (Map.find_opt a d.bundles) "Invalid shop_bundle" : shop_bundle_data)
+    (Option.unopt_with_error (Map.find_opt a d.bundles) ERROR.shop_bundle : shop_bundle_data)
 
 
 let set_shop_open (v, d : bool * shop_storage) =
@@ -58,11 +58,11 @@ let consume_item (item,qty,addr,d: shop_item * nat * address * shop_storage) =
     let data = _get_item_data (item,d) in
     let _ = if not (Set.mem (Tezos.get_sender ()) data.consumers) then failwith ERROR.rights_other in
     let b = Big_map.find_opt addr d.owned_items in
-    let b = Option.unopt_with_error b "No owned items" in
+    let b = Option.unopt_with_error b ERROR.item_not_enough in
     let c = (match (Map.find_opt item b) with
         | None -> 0n
         | Some v -> v ) in
-    let _ = if c < qty then failwith "Not enough items" in
+    let _ = if c < qty then failwith ERROR.item_not_enough in
     let b = Map.update item (Some (abs ((int qty) - (int c)))) b in
     [], { d with owned_items = Big_map.update addr (Some b) d.owned_items }
 
@@ -79,7 +79,7 @@ let grant_item (item,qty,addr,d: shop_item * nat * address * shop_storage) =
     let _ = _admin_only d in
     let data = _get_item_data (item,d) in
     let _ = if Tezos.get_amount () <> (data.price * qty) then failwith ERROR.price in
-    let _ = if data.quantity < qty then failwith "Not enough item availability" in
+    let _ = if data.quantity < qty then failwith ERROR.item_no_stock in
     let data = { data with quantity = abs ((int data.quantity) - (int qty)) } in
     let d = { d with items = Map.update item (Some data) d.items } in
     let d  = _increment_item (item,qty,addr,d) in
@@ -88,7 +88,7 @@ let grant_item (item,qty,addr,d: shop_item * nat * address * shop_storage) =
 let buy_item (item, qty, d: shop_item * nat * shop_storage) =
     let data = _get_item_data (item,d) in
     let _ = if Tezos.get_amount () <> (data.price * qty) then failwith ERROR.price in
-    let _ = if data.quantity < qty then failwith "Not enough item availability" in
+    let _ = if data.quantity < qty then failwith ERROR.item_no_stock in
     let data = { data with quantity = abs ((int data.quantity) - (int qty)) } in
     let d = { d with items = Map.update item (Some data) d.items } in
     let addr = Tezos.get_sender () in
@@ -98,7 +98,7 @@ let buy_item (item, qty, d: shop_item * nat * shop_storage) =
 let buy_bundle (bundle, qty, d: shop_bundle * nat * shop_storage) =
     let data = _get_bundle_data (bundle,d) in    
     let _ = if Tezos.get_amount () <> (data.price * qty) then failwith ERROR.price in
-    let _ = if data.quantity < qty then failwith "Not enough item availability" in
+    let _ = if data.quantity < qty then failwith ERROR.item_no_stock in
     let data = { data with quantity = abs ((int data.quantity) - (int qty)) } in
     let d = { d with bundles = Map.update bundle (Some data) d.bundles } in
     let addr = Tezos.get_sender () in

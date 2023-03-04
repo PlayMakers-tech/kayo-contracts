@@ -5,10 +5,10 @@ let _admin_only (d: tournament_storage) =
     if Tezos.get_sender () <> d.admin then failwith ERROR.rights_admin
 
 let _get_fighter_data (a,d: fighter_id * tournament_storage) =
-    (Option.unopt_with_error (Tezos.call_view "get_fighter_data" a d.fighter_addr) "Invalid fighter_id"
+    (Option.unopt_with_error (Tezos.call_view "get_fighter_data" a d.fighter_addr) ERROR.fighter_id
     : fighter_data)
 let _get_tournament_data (id, d: tournament_id * tournament_storage) =
-    Option.unopt_with_error (Big_map.find_opt id d.tournaments) "Invalid tournament_id"
+    Option.unopt_with_error (Big_map.find_opt id d.tournaments) ERROR.tournament_id
 
 let set_tournament_fee (v, d : tez * tournament_storage) =
     let _ = _admin_only d in

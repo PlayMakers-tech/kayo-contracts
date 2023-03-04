@@ -15,6 +15,14 @@ module ERROR =
 	let not_in_queue  = "Fighter not in a queue"
 	let minted        = "The fighter is already fully minted"
 
+	let fighter_id    = "Invalid fighter id"
+	let fight_id      = "Invalid fight id"
+	let ability_id    = "Invalid ability id"
+	let tournament_id = "Invalid tournament id"
+	let rarity        = "Invalid rarity"
+	let shop_item     = "Invalid shop item"
+	let shop_bundle   = "Invalid shop bundle"
+
 	let invalid_fighter = "Invalid fighter"
 	let name_too_long   = "Fighter name too long"
 
@@ -47,6 +55,9 @@ module ERROR =
 	let min_price     = "Minimum price not reached"
 	let already_owned = "Fighter already owned"
 	let not_listed    = "Fighter not listed"
+
+	let item_no_stock   = "Item out of stock"
+	let item_not_enough = "Not enough item owned"
 
 end
 
