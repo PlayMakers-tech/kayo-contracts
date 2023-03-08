@@ -7,7 +7,7 @@ type rarity =
 | Common
 | Uncommon
 | Rare
-| Legendary
+| Epic
 | Mythic
 | Unique
 
@@ -26,17 +26,15 @@ type ability_storage = {
     available_abilities: (rarity, ability_id set) big_map;
     fighter_abilities: (fighter_id, ability_id set) big_map;
     abilities: (ability_id, ability_data) big_map;
-    proba_rarity: (rarity, nat) map;
-    amount_rarity: (rarity, nat) map
+    proba_rarity: (rarity, nat) map
 }
 
 type ability_parameter =
 | SetFighterAddr of address
 | SetProbaRarity of rarity * nat
-| SetAmountRarity of rarity * nat
 | CreateAbility of rarity list
-| Mint of fighter_id * bytes
-| Fusion of fighter_id * fighter_id * fighter_id * bytes
+| Mint of fighter_id * (ability_id list)
+| Fusion of fighter_id * fighter_id * fighter_id * (ability_id list)
 | LearnAbility of fighter_id * ability_id
 | ForgetAbility of fighter_id * ability_id
 

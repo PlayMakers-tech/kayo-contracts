@@ -47,7 +47,7 @@ let mint (d : fighter_storage) =
         mints = Set.add d.next_id d.mints
     }
 
-let real_mint (id, attr, abil, d: fighter_id * bytes * bytes * fighter_storage) =
+let real_mint (id, attr, abil, d: fighter_id * bytes * (ability_id list) * fighter_storage) =
     let _ = _admin_only d in
     let f = _get_fighter_data (id,d) in
     if f.minting=false then failwith ERROR.minted else

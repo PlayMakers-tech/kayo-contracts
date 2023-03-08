@@ -5,6 +5,7 @@ type fighter_id = nat
 
 #include "fight.schema.mligo"
 #include "tournament.schema.mligo"
+#include "ability.schema.mligo"
 
 type fighter_data = {
     id: fighter_id;
@@ -38,7 +39,7 @@ type fighter_storage = {
 
 type fighter_parameter =
 | Mint
-| RealMint of fighter_id * bytes * bytes
+| RealMint of fighter_id * bytes * (ability_id list)
 | SetMintFee of tez
 | SetFusionFee of tez
 | SetFightAddr of address

@@ -82,7 +82,7 @@ let test =
 	        (Common,    (Set.empty: ability_id set));
 	        (Uncommon,  (Set.empty: ability_id set));
 	        (Rare,      (Set.empty: ability_id set));
-	        (Legendary, (Set.empty: ability_id set));
+	        (Epic,      (Set.empty: ability_id set));
 	        (Mythic,    (Set.empty: ability_id set));
 	        (Unique,    (Set.empty: ability_id set))
 	    ];
@@ -92,17 +92,9 @@ let test =
 	        (Common,       1n);
 	        (Uncommon,     0n);
 	        (Rare,        10n);
-	        (Legendary,   40n);
+	        (Epic,        40n);
 	        (Mythic,       0n);
 	        (Unique,     160n)
-	    ];
-	    amount_rarity = Map.literal [
-	        (Common,       0n);
-	        (Uncommon,     0n);
-	        (Rare,      1000n);
-	        (Legendary,  100n);
-	        (Mythic,       0n);
-	        (Unique,       1n)
 	    ]
 	} in
     let ability_addr, _, _ = Test.originate_from_file "ability.mligo" "main" [] (Test.eval init_store) 0tez in
@@ -196,7 +188,7 @@ let test =
     let rl : rarity list =
     	[Common;Common;Common;Common;Common;Common;Common;Common;Common;Common;
 		 Rare;Rare;Rare;Rare;Rare;
-		 Legendary;Legendary;Legendary;
+		 Epic;Epic;Epic;
 		 Unique] in
     let _ = 
         (match Test.transfer_to_contract ability_contract (CreateAbility rl) 0tez with
@@ -230,14 +222,14 @@ let test =
     let _ = Test.set_source admin_address in
     let _ = 
         (match Test.transfer_to_contract fighter_contract
-            (RealMint (alice_token,0xfb0504030201fb0101010101,0x00)) 0tez with
+            (RealMint (alice_token,0xfb0504030201fb0101010101,[0n;0n;0n])) 0tez with
         | Success _ -> true
         | Fail err -> Test.failwith err )
         |> Test.assert 
     in
     let _ = 
         (match Test.transfer_to_contract fighter_contract
-            (RealMint (bob_token,0xfb060708090Afb0101010101,0x00)) 0tez with
+            (RealMint (bob_token,0xfb060708090Afb0101010101,[1n])) 0tez with
         | Success _ -> true
         | Fail err -> Test.failwith err )
         |> Test.assert 
@@ -360,8 +352,8 @@ let test =
     let alice_token1 : fighter_id = 3n in
     let alice_token2 : fighter_id = 4n in
     let _ = Test.set_source admin_address in    
-    let _ =  Test.transfer_to_contract fighter_contract (RealMint (alice_token1,0xfb0504030201fb0101010101,0x00)) 0tez in
-    let _ =  Test.transfer_to_contract fighter_contract (RealMint (alice_token2,0xfb1514131211fb0101010101,0x00)) 0tez in
+    let _ =  Test.transfer_to_contract fighter_contract (RealMint (alice_token1,0xfb0504030201fb0101010101,[0n;1n;2n])) 0tez in
+    let _ =  Test.transfer_to_contract fighter_contract (RealMint (alice_token2,0xfb1514131211fb0101010101,[0n;1n;3n])) 0tez in
     let _ = Test.set_source alice_address in
     let _ = 
         (match Test.transfer_to_contract fighter_contract (Fusion (alice_token1, alice_token2)) fusion_fee with
@@ -374,7 +366,7 @@ let test =
     let _ = Test.set_source admin_address in
     let _ = 
         (match Test.transfer_to_contract fighter_contract
-            (RealMint (alice_token3,0xfb5554535251fb1111111111,0x00)) 0tez with
+            (RealMint (alice_token3,0xfb5554535251fb1111111111,[])) 0tez with
         | Success _ -> true
         | Fail err -> Test.failwith err )
         |> Test.assert 
@@ -391,7 +383,7 @@ let test =
     let _ =  Test.transfer_to_contract fighter_contract (Mint) mint_fee in
     let token : fighter_id = 6n in
     let _ = Test.set_source admin_address in    
-    let _ =  Test.transfer_to_contract fighter_contract (RealMint (token,0xfb0504030201fb0101010101,0x00)) 0tez in
+    let _ =  Test.transfer_to_contract fighter_contract (RealMint (token,0xfb0504030201fb0101010101,[4n;5n;6n])) 0tez in
     let _ = Test.set_source bob_address in
     let _ = 
         (match Test.transfer_to_contract marketfighter_contract (Buy (token, 15tez)) 15tez with
@@ -414,7 +406,7 @@ let test =
     let _ =  Test.transfer_to_contract fighter_contract (Mint) mint_fee in
     let token : fighter_id = 7n in
     let _ = Test.set_source admin_address in    
-    let _ =  Test.transfer_to_contract fighter_contract (RealMint (token,0xfb0504030201fb0101010101,0x00)) 0tez in
+    let _ =  Test.transfer_to_contract fighter_contract (RealMint (token,0xfb0504030201fb0101010101,[1n;6n;7n])) 0tez in
     let _ = Test.set_source bob_address in
     let _ = 
         (match Test.transfer_to_contract marketfighter_contract (Buy (token, 15tez)) 15tez with
@@ -437,7 +429,7 @@ let test =
     let _ =  Test.transfer_to_contract fighter_contract (Mint) mint_fee in
     let token : fighter_id = 8n in
     let _ = Test.set_source admin_address in    
-    let _ =  Test.transfer_to_contract fighter_contract (RealMint (token,0xfb0504030201fb0101010101,0x00)) 0tez in
+    let _ =  Test.transfer_to_contract fighter_contract (RealMint (token,0xfb0504030201fb0101010101,[8n])) 0tez in
     let _ = Test.set_source alice_address in
     let _ = 
         (match Test.transfer_to_contract marketfighter_contract (Sell (token, 15tez)) listing_fee with
@@ -460,7 +452,7 @@ let test =
     let _ =  Test.transfer_to_contract fighter_contract (Mint) mint_fee in
     let token : fighter_id = 9n in
     let _ = Test.set_source admin_address in    
-    let _ =  Test.transfer_to_contract fighter_contract (RealMint (token,0xfb0504030201fb0101010101,0x00)) 0tez in
+    let _ =  Test.transfer_to_contract fighter_contract (RealMint (token,0xfb0504030201fb0101010101,[0n;0n;0n;0n;0n])) 0tez in
     let _ = Test.set_source alice_address in
     let _ = 
         (match Test.transfer_to_contract marketfighter_contract (Sell (token, 15tez)) listing_fee with

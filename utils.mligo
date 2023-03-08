@@ -14,6 +14,15 @@ let byte_to_nat (b: bytes) : nat =
     if b < 0x80 then b else (Bytes.concat b 0x01) )))
   in abs (i+128)
 
+let rec _bytes_to_nat (b, acc: bytes * nat) : nat =
+  let s = Bytes.length b in
+  if s = 0n then acc else
+  if s = 1n then 256n*acc + byte_to_nat b else
+  let acc = 256n * acc + (byte_to_nat ((Bytes.sub 0n 1n b))) in
+  _bytes_to_nat ((Bytes.sub 1n (abs (s-1n)) b), acc)
+
+let bytes_to_nat (b: bytes) : nat = _bytes_to_nat (b,0n)
+
 [@inline]
 let rand_hash () : bytes = 
   let f = 
@@ -27,21 +36,5 @@ let rand_hash () : bytes =
   ]
   in Bytes.sub 10n 17n (Bytes.pack (f ()))
 
-let rand_hash_as_nat () : nat = 
-  let r =  rand_hash () in
-  (byte_to_nat (Bytes.sub 0n 1n r)) + 256n * (
-    (byte_to_nat (Bytes.sub 2n 1n r)) + 256n * (
-     (byte_to_nat (Bytes.sub 3n 1n r)) + 256n * (
-      (byte_to_nat (Bytes.sub 4n 1n r)) + 256n * (
-       (byte_to_nat (Bytes.sub 5n 1n r)) + 256n * (
-        (byte_to_nat (Bytes.sub 6n 1n r)) + 256n * (
-         (byte_to_nat (Bytes.sub 7n 1n r)) + 256n * (
-          (byte_to_nat (Bytes.sub 9n 1n r)) + 256n * (
-           (byte_to_nat (Bytes.sub 10n 1n r)) + 256n * (
-            (byte_to_nat (Bytes.sub 11n 1n r)) + 256n * (
-             (byte_to_nat (Bytes.sub 12n 1n r)) + 256n * (
-              (byte_to_nat (Bytes.sub 13n 1n r)) + 256n * (
-               (byte_to_nat (Bytes.sub 14n 1n r)) + 256n * (
-                (byte_to_nat (Bytes.sub 15n 1n r)) + 256n * (
-                 (byte_to_nat (Bytes.sub 16n 1n r))))))))))))))))
+let rand_hash_as_nat () : nat = bytes_to_nat (rand_hash ())
   
