@@ -12,8 +12,7 @@ type attribute_skin_node = bytes * nat * nat (* id, size, likelihood *)
 type attribute_data = {
     id: fighter_id;
     xp: nat;
-    val: attribute_value;
-    pot: attribute_value;
+    crypted: attribute_value;
     skin: attribute_skin
 }
 
@@ -32,7 +31,7 @@ type attribute_parameter =
 | SetSkinNodes of nat * (attribute_skin_node list)
 | SetSkinLeaves of nat * (attribute_skin_node list)
 | EarnXP of fighter_id * nat
-| Mint of fighter_id * bytes
-| Fusion of fighter_id * fighter_id * fighter_id * bytes
+| Mint of fighter_id * attribute_value
+| Fusion of fighter_id * fighter_id * fighter_id * attribute_value
 
 #endif

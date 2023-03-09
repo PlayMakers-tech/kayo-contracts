@@ -23,7 +23,7 @@ let rec _pick_with_proba (a, l: nat * attribute_skin_node list) : attribute_skin
 
 let _random_skin_leaf (r, d:  bytes * attribute_storage) : attribute_skin =
 	let (p, l) : (nat * attribute_skin_node list) = d.skin_leaves in
-	let a : nat = (byte_to_nat (Bytes.sub 0n 1n r)) * 256n + (byte_to_nat (Bytes.sub 1n 1n r)) in
+	let a : nat = bytes_to_nat (Bytes.sub 0n 2n r) in
 	let a : nat = a mod p in
 	let (id, size, _) : attribute_skin_node = _pick_with_proba (a, l) in
 	if size = 0n
@@ -32,38 +32,32 @@ let _random_skin_leaf (r, d:  bytes * attribute_storage) : attribute_skin =
 
 let _random_skin_node (r, n1, n2, d:  bytes * attribute_skin * attribute_skin * attribute_storage) : attribute_skin =
 	let (p, l) = d.skin_nodes in
-	let a : nat = (byte_to_nat (Bytes.sub 0n 1n r)) * 256n + (byte_to_nat (Bytes.sub 1n 1n r)) in
+	let a : nat = bytes_to_nat (Bytes.sub 0n 2n r) in
 	let a : nat = a mod p in
 	let (id, size, _) : attribute_skin_node = _pick_with_proba (a, l) in
 	if size = 0n
 	then Bytes.concat id (Bytes.concat n1 n2)
 	else Bytes.concat id (Bytes.concat (Bytes.sub 2n size r) (Bytes.concat n1 n2))
 
-let new_attribute (id, data, d: fighter_id * bytes * attribute_storage) : attribute_data =
+let new_attribute (id, data, d: fighter_id * attribute_value * attribute_storage) : attribute_data =
 	let r : bytes = rand_hash () in
 	let c : bytes = Bytes.sub 0n 10n r in
-	let val_s : nat = byte_to_nat (Bytes.sub 0n 1n data) in
-	let val_p : nat = byte_to_nat (Bytes.sub (val_s+1n) 1n data) in
     {
         id  = id;
         xp  = 0n;
-        val = Bytes.sub 1n val_s data;
-        pot = Bytes.sub (val_s+2n) val_p data;
+        crypted = data;
         skin = _random_skin_leaf (c, d)
     }
 
-let fuse_attribute (id, father, mother, data, d: fighter_id * fighter_id * fighter_id * bytes * attribute_storage) : attribute_data =
+let fuse_attribute (id, father, mother, data, d: fighter_id * fighter_id * fighter_id * attribute_value * attribute_storage) : attribute_data =
 	let r : bytes = rand_hash () in
 	let f : attribute_data = _get_attribute_data (father, d) in
 	let m : attribute_data = _get_attribute_data (mother, d) in
 	let c : bytes = Bytes.sub 0n 10n r in
-	let val_s : nat = byte_to_nat (Bytes.sub 0n 1n data) in
-	let val_p : nat = byte_to_nat (Bytes.sub (val_s+1n) 1n data) in
     {
         id  = id;
-        xp  = 0n;
-        val = Bytes.sub 1n val_s data;
-        pot = Bytes.sub (val_s+2n) val_p data;
+        xp  = f.xp + m.xp;
+        crypted = data;
         skin = _random_skin_node (c, f.skin, m.skin, d)
     }
 
@@ -97,12 +91,12 @@ let earn_xp (id, xp, d: fighter_id * nat * attribute_storage) =
 	let op = if lvl = 0n then [] else [Tezos.emit "%levelUp" (id, lvl)] in
 	op, { d with attributes = Big_map.update id (Some attr) d.attributes }
 
-let mint (id, data, d: fighter_id * bytes * attribute_storage) =
+let mint (id, data, d: fighter_id * attribute_value * attribute_storage) =
     let _ = if Tezos.get_sender () <> d.fighter_addr then failwith ERROR.rights_other in
 	[], { d with attributes = Big_map.add id (new_attribute (id, data, d)) d.attributes }
 
 // TODO The fusion needs to be reworked
-let fusion (id, father, mother, data, d: fighter_id * fighter_id * fighter_id * bytes * attribute_storage) =
+let fusion (id, father, mother, data, d: fighter_id * fighter_id * fighter_id * attribute_value * attribute_storage) =
     let _ = if Tezos.get_sender () <> d.fighter_addr then failwith ERROR.rights_other in
 	[], { d with attributes = Big_map.add id (fuse_attribute (id, father, mother, data, d)) d.attributes }
 
