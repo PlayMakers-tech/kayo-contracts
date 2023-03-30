@@ -14,6 +14,10 @@ let _get_fighters_in_queue (q, d: fight_queue * fight_storage): fighter_id set =
     match (Big_map.find_opt q d.queues) with
     | Some x -> x
     | None -> Set.empty
+let _get_fights_by_fighter (id, d: fighter_id * fight_storage): fight_id set =
+    match (Big_map.find_opt id d.fights_by_fighter) with
+    | Some x -> x
+    | None -> Set.empty
 
 
 let _resolve_fight (id, event, d: fight_id * operation * fight_storage) =
@@ -77,7 +81,8 @@ let new_fight (id, a, b, round_cnt, stake: fight_id * fighter_id * fighter_id * 
         stake = stake;
         state = Initialized;
         result = 0;
-        metadata = 0x00
+        metadata = 0x00;
+        start_date = Tezos.get_now ()
     } : fight_data)
 
 
@@ -91,12 +96,18 @@ let create_fight (a, b, round_cnt, stake, d:
     let _ = if (fb.listed || fb.fight>0n) then failwith ERROR.unavailable_fighter "b" in
     let _ = if (fa.queue <> fb.queue) then failwith ERROR.different_queue in
     let queue_set = _get_fighters_in_queue (fa.queue,d) in
+    let fbfa = Set.add d.next_id (_get_fights_by_fighter (a, d)) in
+    let fbfb = Set.add d.next_id (_get_fights_by_fighter (b, d)) in
+    let fbf = d.fights_by_fighter in
+    let fbf = Big_map.update a (Some fbfa) fbf in
+    let fbf = Big_map.update b (Some fbfb) fbf in
 	[Tezos.transaction (SetFighterState (a,d.next_id,fa.tournament,NotQueuing)) 0tez (Tezos.get_contract d.fighter_addr);
 	 Tezos.transaction (SetFighterState (b,d.next_id,fb.tournament,NotQueuing)) 0tez (Tezos.get_contract d.fighter_addr);
      Tezos.emit "%newFight" (d.next_id, a, b)],
 	{ d with 
         next_id = d.next_id + 1n;
         fights = Big_map.add d.next_id (new_fight (d.next_id, a, b, round_cnt, stake)) d.fights;
+        fights_by_fighter = fbf;
         queues = Big_map.update fa.queue (Some (Set.remove b (Set.remove a queue_set))) d.queues
 	}
 

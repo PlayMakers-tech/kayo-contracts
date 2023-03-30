@@ -53,6 +53,7 @@ let test =
         attribute_addr = dummy_address;
         admin = (admin_address: address);
         fights = Big_map.empty;
+        fights_by_fighter = Big_map.empty;
         queues = Big_map.empty
     } in
     let fight_addr, _, _ = Test.originate_from_file "fight.mligo" "main" [] (Test.eval init_store) 0tez in

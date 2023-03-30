@@ -37,6 +37,7 @@ type fight_data = {
     stake: fight_stake;
     state: fight_state;
     result: int;
+    start_date: timestamp;
     metadata: fight_metadata
 }
 
@@ -48,6 +49,7 @@ type fight_storage = {
     attribute_addr: address;
     admin: address;
     fights: (fight_id, fight_data) big_map;
+    fights_by_fighter: (fighter_id, fight_id set) big_map;
     queues: (fight_queue, fighter_id set) big_map
 }
 
