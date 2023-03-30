@@ -130,8 +130,10 @@ let resolve_round (id, round, result, data, d: fight_id * nat * int * round_data
 	else _resolve_fight(id,event,d)
 
 
-let set_strategy (_id, _a, _data, _d: fight_id * fighter_id * strategy_data * fight_storage) =
-    failwith "Not implemented yet"
+let set_strategy (id, a, data, d: fight_id * fighter_id * strategy_data * fight_storage) =
+    let fa = _get_fighter_data (a,d) in
+    let _ = if Tezos.get_sender () <> fa.owner then failwith ERROR.rights_owner in
+    [Tezos.emit "%strategy" (id, a, data)], d
 
 let add_to_queue (a, queue, d: fighter_id * fight_queue * fight_storage) =
 	let fa = _get_fighter_data (a,d) in
