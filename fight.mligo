@@ -50,8 +50,9 @@ let _resolve_fight (id, event, d: fight_id * operation * fight_storage) =
     let op =
     	(Tezos.transaction (EarnXP (f.a,abs(f.round_cnt+1+f.result))) 0tez (Tezos.get_contract d.attribute_addr))::
     	(Tezos.transaction (EarnXP (f.b,abs(f.round_cnt+1-f.result))) 0tez (Tezos.get_contract d.attribute_addr))::
-     	op in
-    event::op,d
+     	op in    
+    let d = { d with fights = Big_map.update id (Some f) d.fights } in
+    event::op, d
 
 let set_fight_fee (v, d : tez * fight_storage) =
     let _ = _admin_only d in
@@ -119,7 +120,8 @@ let resolve_round (id, round, result, data, d: fight_id * nat * int * round_data
     	fights = Big_map.update id 
                 (Some { f with 
                     rounds = data::f.rounds;
-                    result = f.result + result
+                    result = f.result + result;
+                    state  = OnGoing
                 }) d.fights;
     } in
     let event = Tezos.emit "%roundResolved" (id, round, result, data) in
