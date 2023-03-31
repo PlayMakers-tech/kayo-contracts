@@ -471,4 +471,14 @@ let test =
     let _ = Test.println "Should be owned by Alice" in
     let _ = dump token in
 
+
+    // Cancel listing
+    let _ = Test.set_source alice_address in
+    let _ = 
+        (match Test.transfer_to_contract marketfighter_contract (Cancel token) 0tez with
+        | Success _ -> true
+        | Fail err -> Test.failwith err )
+        |> Test.assert 
+    in
+
     ()

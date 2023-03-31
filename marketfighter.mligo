@@ -100,7 +100,7 @@ let cancel (id, d : fighter_id * marketfighter_storage) =
     let f = _get_fighter_data (id,d) in
     let sender = Tezos.get_sender () in
     if sender = f.owner then
-        let _ = if Set.mem id d.listed_sale then failwith ERROR.not_listed in
+        let _ = if (not Set.mem id d.listed_sale) then failwith ERROR.not_listed in
         [Tezos.emit "%cancel_selling" id],
         { d with
             listed_sale = Set.remove id d.listed_sale;
