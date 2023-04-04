@@ -1,3 +1,9 @@
+(**
+    Utility functions
+    To be cleaned
+    @author Maxime Niankouri - PlayMakers - 2023
+    @version 1.0.0
+*)
 let rec _sqrt (n:int) (s:int) : int = if s*s > n then s-1 else _sqrt n (s+1)
 let sqrt (n: int) : int = _sqrt n 1
 

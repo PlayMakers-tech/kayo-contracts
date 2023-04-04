@@ -1,18 +1,37 @@
+(**
+    Fighter smart contract
+    This contract holds the NFT for KAYO Fighters.
+    We have here ids for each fighter, linked to an object where we
+    can learn about the current owner, its current state and its name.
+    This is also through this contract that a fighter can be transfered,
+    but only if in a state where this is allowed.
+    More data on the fighters are available through the Ability and the
+    Attribute contracts.
+    The fighters are used in the Fight, Tournament and Marketfighter
+    contracts.
+    @author Maxime Niankouri - PlayMakers - 2023
+    @version 1.0.0
+*)
 #include "fighter.schema.mligo"
 #include "ability.schema.mligo"
 #include "attribute.schema.mligo"
 #include "error.mligo"
 
+(** Private function to check that the caller is admin *)
 let _admin_only (d: fighter_storage) =
     if Tezos.get_sender () <> d.admin then failwith ERROR.rights_admin
+
+(** Private function to get fighter data out of its id *)
 let _get_fighter_data (id, d: fighter_id * fighter_storage) =
     Option.unopt_with_error (Big_map.find_opt id d.fighters) ERROR.fighter_id
+
+(** Private function to get all fighters owned by an address *)
 let _get_fighters_by_owner (owner, d: address * fighter_storage) : fighter_id set =
     match (Big_map.find_opt owner d.fighters_by_owner) with
     | Some x -> x
     | None -> Set.empty
 
-
+(** Checking that a fighter is in a transferrable state *)
 let beforeTransfer (f: fighter_data) =
     if      f.listed=true       then failwith ERROR.listed
     else if f.queue<>NotQueuing then failwith ERROR.queued
@@ -21,6 +40,7 @@ let beforeTransfer (f: fighter_data) =
     else if f.inactive=true     then failwith ERROR.inactive
     else if f.minting=true      then failwith ERROR.minting
 
+(** Initializing a new fighter object with default values *)
 let new_fighter (id, owner: fighter_id * address) =
     ({
         id = id;
@@ -37,6 +57,12 @@ let new_fighter (id, owner: fighter_id * address) =
 
     } : fighter_data)
 
+(** Mint entrypoint
+    Note that this only requests a mint, and reserve its id
+    @caller any
+    @amount mint_fee
+    @event minting id
+*)
 let mint (d : fighter_storage) =
     let _ = if Tezos.get_amount () <> d.mint_fee then failwith ERROR.fee in
     let owner = Tezos.get_sender () in
@@ -47,6 +73,13 @@ let mint (d : fighter_storage) =
         mints = Set.add d.next_id d.mints
     }
 
+(** RealMint entrypoint
+    After a Mint or a Fusion, this actually sets all the values to complete the process
+    @caller minter
+    @call  Attribute Mint|Fusion
+    @call  Ability   Mint|Fusion
+    @event minting id
+*)
 let real_mint (id, attr, abil, d: fighter_id * bytes * (ability_id list) * fighter_storage) =
     let _ = _admin_only d in
     let f = _get_fighter_data (id,d) in
@@ -71,28 +104,58 @@ let real_mint (id, attr, abil, d: fighter_id * bytes * (ability_id list) * fight
         mints = Set.remove id d.mints
     }
 
+(** Set the mint fee to be paid by the user for a Mint
+    @caller admin
+*)
 let set_mint_fee (v, d : tez * fighter_storage) =
     let _ = _admin_only d in
     [], {d with mint_fee = v}
+
+(** Set the mint fee to be paid by the user for a Fusion
+    @caller admin
+*)
 let set_fusion_fee (v, d : tez * fighter_storage) =
     let _ = _admin_only d in
     [], {d with fusion_fee = v}
+
+(** Set the address of the Fight smart contract
+    @caller admin
+*)
 let set_fight_addr (addr, d : address * fighter_storage) =
     let _ = _admin_only d in
     [], {d with fight_addr = addr}
+
+(** Set the address of the Tournament smart contract
+    @caller admin
+*)
 let set_tournament_addr (addr, d : address * fighter_storage) =
     let _ = _admin_only d in
     [], {d with tournament_addr = addr}
+
+(** Set the address of the Attribute smart contract
+    @caller admin
+*)
 let set_attribute_addr (addr, d : address * fighter_storage) =
     let _ = _admin_only d in
     [], {d with attribute_addr = addr}
+
+(** Set the address of the Ability smart contract
+    @caller admin
+*)
 let set_ability_addr (addr, d : address * fighter_storage) =
     let _ = _admin_only d in
     [], {d with ability_addr = addr}
+
+(** Set the address of the Marketfighter smart contract
+    @caller admin
+*)
 let set_marketfighter_addr (addr, d : address * fighter_storage) =
     let _ = _admin_only d in
     [], {d with marketfighter_addr = addr}
 
+(** Set the combat state of a fighter
+    @caller admin|Tournament|Fight
+*)
 let set_fighter_state (id,fight,tournament,queue,d:
         fighter_id * fight_id * tournament_id * fight_queue * fighter_storage) =
     let f  = _get_fighter_data (id, d) in
@@ -107,7 +170,13 @@ let set_fighter_state (id,fight,tournament,queue,d:
                 }) d.fighters
         }
 
-// TODO The fusion needs to be reworked (maybe)
+(** Fusion entrypoint
+    Note that this only requests a fusion, reserve its id, and disable the parents
+    TODO The fusion needs to be reworked (maybe)
+    @caller owner
+    @amount fusion_fee
+    @event minting id
+*)
 let fusion (father, mother, d: fighter_id * fighter_id * fighter_storage) =
     let owner = Tezos.get_sender () in
     let f = _get_fighter_data (father,d) in
@@ -137,7 +206,9 @@ let fusion (father, mother, d: fighter_id * fighter_id * fighter_storage) =
         mints = Set.add d.next_id d.mints
     }
 
-
+(** Set the market state of a fighter
+    @caller admin|Marketfighter
+*)
 let set_fighter_listed (id, state, d: fighter_id * bool * fighter_storage) =
     let f  = _get_fighter_data (id, d) in
     if not (Set.mem (Tezos.get_sender ()) (Set.literal [d.admin;d.marketfighter_addr]))
@@ -149,6 +220,13 @@ let set_fighter_listed (id, state, d: fighter_id * bool * fighter_storage) =
                 }) d.fighters
         }
 
+(** Transfer entrypoint
+    Transfer the fighter from one owner to the next.
+    This can be done on a whim by its owner, through a fight/tournament reward,
+    or after a auction/trade from the market.
+    @caller owner|admin|Fight|Tournament|Marketfighter
+    @event transfer (id, old_owner, new_owner)
+*)
 let transfer (id, addr, d: fighter_id * address * fighter_storage) =
     let f  = _get_fighter_data (id, d) in
     let _ = if not (Set.mem (Tezos.get_sender ()) (Set.literal [f.owner;d.admin;d.fight_addr;d.tournament_addr;d.marketfighter_addr]))
@@ -164,6 +242,10 @@ let transfer (id, addr, d: fighter_id * address * fighter_storage) =
         fighters_by_owner = fbo;
     }
 
+(** SetName entrypoint
+    Allow the owner to rename their fighter with a 32 characters limit.
+    @caller owner
+*)
 let set_name (id, name, d: fighter_id * string * fighter_storage) =
     let _ = if String.length name > 32n then failwith ERROR.name_too_long in
     let f  = _get_fighter_data (id, d) in
@@ -173,12 +255,16 @@ let set_name (id, name, d: fighter_id * string * fighter_storage) =
         fighters = Big_map.update id (Some {f with name = name}) d.fighters
     }
 
+(** SinkFees entrypoint
+    Allow the admin to retrieve the funds stored on the contract
+    @caller admin
+*)
 let sink_fees (addr, d: address * fighter_storage) =
     let _ = _admin_only d in
     [Tezos.transaction unit (Tezos.get_balance ()) (Tezos.get_contract addr)], d
 
 
-
+(** Main function of the smart contract *)
 let main (action, d: fighter_parameter * fighter_storage) = 
     ( match action with
     | Mint -> mint(d)

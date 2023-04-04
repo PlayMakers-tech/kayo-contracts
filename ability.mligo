@@ -1,16 +1,37 @@
+(**
+    Ability smart contract
+    This contract hold Ability data for Fighters.
+    We have here ids for each fighter, linked to an object where we
+    can get the set of ability this fighter holds.
+    The ability set can evolve over time, mainly after level up events.
+    Abilities have rarity levels, determining their probability to be
+    selected.
+    Note that, for the sake of safe randomness, the selection of ability
+    might occur off-chain an be set via the relevant entrypoint.
+    @author Maxime Niankouri - PlayMakers - 2023
+    @version 1.0.0
+*)
 #include "ability.schema.mligo"
 #include "error.mligo"
 #include "utils.mligo"
 
+(** Private function to check that the caller is admin *)
 let _admin_only (d: ability_storage) =
     if Tezos.get_sender () <> d.admin then failwith ERROR.rights_admin
 
+(** Private function to get ability data out of a its id *)
 let _get_ability_data (id, d: ability_id * ability_storage) =
     Option.unopt_with_error (Big_map.find_opt id d.abilities) ERROR.ability_id
+
+(** Private function to get ability list out of a fighter id *)
 let _get_fighter_abilities (id, d: fighter_id * ability_storage) =
     Option.unopt_with_error (Big_map.find_opt id d.fighter_abilities) ERROR.fighter_id
+
+(** Private function returning a list of available abilities, considering uniques *)
 let _get_available_abilities (r, d: rarity * ability_storage) =
     Option.unopt_with_error (Big_map.find_opt r d.available_abilities) ERROR.rarity
+
+(** Private function to get the probability of a specific rarity *)
 let _get_proba_rarity (r, d: rarity * ability_storage) =
     Option.unopt_with_error (Map.find_opt r d.proba_rarity) ERROR.rarity
 
@@ -133,6 +154,7 @@ let forget_ability (fid, aid, d: fighter_id * ability_id * ability_storage) =
 		fighter_abilities = Big_map.update fid (Some (Set.remove aid known)) d.fighter_abilities
 	}
 
+(** Main function of the smart contract *)
 let main (action, d: ability_parameter * ability_storage) = 
     ( match action with
     | SetFighterAddr addr -> set_fighter_addr(addr,d)

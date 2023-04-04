@@ -1,18 +1,34 @@
+(**
+    Attribute smart contract
+    This contract hold Attribute data for Fighters.
+    We have here ids for each fighters, linked to an object where we
+    can get the skin, the xp and encrypted data about a Fighter.
+    The attributes are mainly static after minted via the Fighter contract,
+    besides the XP which can be incremented by rewards from other contracts.
+    @author Maxime Niankouri - PlayMakers - 2023
+    @version 1.0.0
+*)
 #include "attribute.schema.mligo"
 #include "utils.mligo"
 #include "error.mligo"
 
+(** Private function to check that the caller is admin *)
 let _admin_only (d: attribute_storage) =
     if Tezos.get_sender () <> d.admin then failwith ERROR.rights_admin
 
+(** Private function to get attribute data out of a fighter id *)
 let _get_attribute_data (id, d: fighter_id * attribute_storage) =
     Option.unopt_with_error (Big_map.find_opt id d.attributes) ERROR.fighter_id
 
+(** Private function to calculate XP out of level *)
 let _get_xp_from_lvl (lvl: nat) =
 	lvl*lvl*10n
+
+(** Private function to calculate level out of XP *)
 let _get_lvl_from_xp (xp: nat) =
 	abs (sqrt (xp/10))
 
+(** Private function to pick a random skin node *)
 let rec _pick_with_proba (a, l: nat * attribute_skin_node list) : attribute_skin_node =
 	match l with
 	| (id,size,llh)::t ->
@@ -21,6 +37,7 @@ let rec _pick_with_proba (a, l: nat * attribute_skin_node list) : attribute_skin
 		else _pick_with_proba (a+llh, t)
 	| _ -> failwith ERROR.wrong_proba_skin
 
+(** Private function to pick a random skin leaf *)
 let _random_skin_leaf (r, d:  bytes * attribute_storage) : attribute_skin =
 	let (p, l) : (nat * attribute_skin_node list) = d.skin_leaves in
 	let a : nat = bytes_to_nat (Bytes.sub 0n 2n r) in
@@ -30,6 +47,7 @@ let _random_skin_leaf (r, d:  bytes * attribute_storage) : attribute_skin =
 	then id
 	else Bytes.concat id (Bytes.sub 2n size r)
 
+(** Private function to pick a random skin node *)
 let _random_skin_node (r, n1, n2, d:  bytes * attribute_skin * attribute_skin * attribute_storage) : attribute_skin =
 	let (p, l) = d.skin_nodes in
 	let a : nat = bytes_to_nat (Bytes.sub 0n 2n r) in
@@ -39,6 +57,7 @@ let _random_skin_node (r, n1, n2, d:  bytes * attribute_skin * attribute_skin * 
 	then Bytes.concat id (Bytes.concat n1 n2)
 	else Bytes.concat id (Bytes.concat (Bytes.sub 2n size r) (Bytes.concat n1 n2))
 
+(** Initializing a new attribute object with random leaf skin for new mints *)
 let new_attribute (id, data, d: fighter_id * attribute_value * attribute_storage) : attribute_data =
 	let r : bytes = rand_hash () in
 	let c : bytes = Bytes.sub 0n 10n r in
@@ -49,6 +68,7 @@ let new_attribute (id, data, d: fighter_id * attribute_value * attribute_storage
         skin = _random_skin_leaf (c, d)
     }
 
+(** Initializing a new attribute object with ranbdom leaf node for fusion *)
 let fuse_attribute (id, father, mother, data, d: fighter_id * fighter_id * fighter_id * attribute_value * attribute_storage) : attribute_data =
 	let r : bytes = rand_hash () in
 	let f : attribute_data = _get_attribute_data (father, d) in
@@ -74,6 +94,7 @@ let set_skin_leaves (proba, l, d : nat * (attribute_skin_node list) * attribute_
     let _ = _admin_only d in
     [], {d with skin_leaves = (proba, l)}
 
+(** Private function to add XP to a fighter and compute the induced level up if any *)
 let rec _add_xp_and_lvl_up (attr, xp, lvl: attribute_data * nat * nat) : (attribute_data * nat) =
 	let current_lvl = _get_lvl_from_xp attr.xp in
 	let next_lvl_xp = _get_xp_from_lvl (current_lvl+1n) in
@@ -83,6 +104,12 @@ let rec _add_xp_and_lvl_up (attr, xp, lvl: attribute_data * nat * nat) : (attrib
 	let attr = { attr with xp = next_lvl_xp } in
 	_add_xp_and_lvl_up (attr, xp, lvl+1n)
 
+(** EarnXP entrypoint
+	Grants some XP to the selected fighter
+	TODO Tournament should be able to reward too
+	@caller admin|Fight|Tournament
+	@event levelUp (fighter_id, nat)
+*)
 let earn_xp (id, xp, d: fighter_id * nat * attribute_storage) =
     let _ =  if not (Set.mem (Tezos.get_sender ()) (Set.literal [d.admin;d.fight_addr]))
     then failwith ERROR.rights_other in
@@ -91,15 +118,26 @@ let earn_xp (id, xp, d: fighter_id * nat * attribute_storage) =
 	let op = if lvl = 0n then [] else [Tezos.emit "%levelUp" (id, lvl)] in
 	op, { d with attributes = Big_map.update id (Some attr) d.attributes }
 
+(** Mint entrypoint
+	Called through Fighter RealMint when a new fighter is minted
+	@caller Fighter
+	@event levelUp (fighter_id, nat)
+*)
 let mint (id, data, d: fighter_id * attribute_value * attribute_storage) =
     let _ = if Tezos.get_sender () <> d.fighter_addr then failwith ERROR.rights_other in
 	[], { d with attributes = Big_map.add id (new_attribute (id, data, d)) d.attributes }
 
-// TODO The fusion needs to be reworked
+(** Fusion entrypoint
+	Called through Fighter RealMint when a fused fighter is minted
+	TODO The fusion needs to be reworked
+	@caller Fighter
+	@event levelUp (fighter_id, nat)
+*)
 let fusion (id, father, mother, data, d: fighter_id * fighter_id * fighter_id * attribute_value * attribute_storage) =
     let _ = if Tezos.get_sender () <> d.fighter_addr then failwith ERROR.rights_other in
 	[], { d with attributes = Big_map.add id (fuse_attribute (id, father, mother, data, d)) d.attributes }
 
+(** Main function of the smart contract *)
 let main (action, d: attribute_parameter * attribute_storage) = 
     ( match action with
     | SetFighterAddr addr -> set_fighter_addr(addr,d)

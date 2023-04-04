@@ -1,12 +1,26 @@
+(**
+    Marketfighter smart contract
+    This contract offers a secondary market for Fighters.
+    This works like stocks, where the owner of a fighter can set any
+    sell price, while anyone else can set a buy price.
+    If the buy price is greater than the sell price, the transaction
+    occurs.
+    @author Maxime Niankouri - PlayMakers - 2023
+    @version 1.0.0
+*)
 #include "marketfighter.schema.mligo"
 #include "error.mligo"
 
+(** Private function to check that the caller is admin *)
 let _admin_only (d: marketfighter_storage) =
     if Tezos.get_sender () <> d.admin then failwith ERROR.rights_admin
+
+(** Private function to get fighter data out of its id from Fighter contract *)
 let _get_fighter_data (a, d: fighter_id * marketfighter_storage) =
     (Option.unopt_with_error (Tezos.call_view "get_fighter_data" a d.fighter_addr) ERROR.fighter_id
     : fighter_data)
 
+(** Checking that a fighter is in a listable/sellable state *)
 let beforeListing (f: fighter_data) =
     if      f.queue<>NotQueuing then failwith ERROR.queued
     else if f.fight<>0n         then failwith ERROR.fighting
@@ -14,6 +28,11 @@ let beforeListing (f: fighter_data) =
     else if f.inactive=true     then failwith ERROR.inactive
     else if f.minting=true      then failwith ERROR.minting
 
+(** Do a transaction at a given price
+    @call Fighter Transfer
+    @call Fighter SetFighterListed
+    @event sold (fighter_id, tez)
+*)
 let transaction (id, price, seller, buyer, d : fighter_id * tez * address * address * marketfighter_storage) =
     let buy_map = (match (Big_map.find_opt id d.buys) with
         | None -> None
@@ -30,6 +49,12 @@ let transaction (id, price, seller, buyer, d : fighter_id * tez * address * addr
         buys = Big_map.update id buy_map d.buys
     }
 
+(** Sell entrypoint
+    Set anf offer for sale, effectively listing a fighter
+    @caller owner
+    @call Fighter SetFighterListed
+    @event selling (fighter_id, tez)
+*)
 let sell (id, price, d : fighter_id * tez * marketfighter_storage) =
     let _ = if Tezos.get_amount () <> d.listing_fee then failwith ERROR.fee in
     let _ = if price < d.min_price then failwith ERROR.min_price in
@@ -61,8 +86,14 @@ let sell (id, price, d : fighter_id * tez * marketfighter_storage) =
         }
     else transaction (id, price, f.owner, buyer, d)
 
-(* TODO case where the buyer change price without canceling *)
-(* TODO case where the fighter is transferred to the buyer via another mean*)
+(** Buy entrypoint
+    Bid on a fighter (or directly buy it if the bid is higher than the current sale.
+    TODO case where the buyer change price without canceling
+    TODO case where the fighter is transferred to the buyer via another mean
+    @caller !owner
+    @amount price
+    @event buying fighter_id
+*)
 let buy (id, price, d : fighter_id * tez * marketfighter_storage) =
     let _ = if Tezos.get_amount () <> price then failwith ERROR.price in
     let _ = if price < d.min_price then failwith ERROR.min_price in
@@ -95,7 +126,13 @@ let buy (id, price, d : fighter_id * tez * marketfighter_storage) =
             buys = Big_map.update id (Some buy_map) d.buys
         }
 
-(* TODO Add timing constraints on buyer cancelling *)
+(** Cancel entrypoint
+    Cancel a Buy or Sell call.
+    TODO Add timing constraints on buyer cancelling
+    @caller any
+    @event cancel_selling fighter_id
+    @event cancel_buying fighter_id
+*)
 let cancel (id, d : fighter_id * marketfighter_storage) =
     let f = _get_fighter_data (id,d) in
     let sender = Tezos.get_sender () in
@@ -139,13 +176,14 @@ let set_fighter_addr (addr, d : address * marketfighter_storage) =
     let _ = _admin_only d in
     [], {d with fighter_addr = addr}
 
-
+(** TODO Should only take out the fees, not the full balance with held buy money *)
 let sink_fees (addr, d: address * marketfighter_storage) =
     let _ = _admin_only d in
     [Tezos.transaction unit (Tezos.get_balance ()) (Tezos.get_contract addr)], d
 
 
 
+(** Main function of the smart contract *)
 let main (action, d: marketfighter_parameter * marketfighter_storage) = 
     ( match action with
     | SetMarketOpen value -> set_market_open(value,d)

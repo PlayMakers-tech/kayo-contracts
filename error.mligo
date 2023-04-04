@@ -1,3 +1,9 @@
+(**
+    ERROR module
+    Table to error messages
+    @author Maxime Niankouri - PlayMakers - 2023
+    @version 1.0.0
+*)
 #if !ERROR_MODULE
 #define ERROR_MODULE
 

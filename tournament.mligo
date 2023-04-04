@@ -1,12 +1,29 @@
+(**
+    Tournament smart contract
+    This contract manages battles tournament, compiling Fights
+    between Fighters.
+    We have here ids for each tournament, linked to an object where we
+    can learn about the fighters and fights involved, its current state,
+    the data of its phases and its other metadata.
+    This is also through this contract that a tournament can be initiated,
+    can advance in its state, and where an owner can register a Fighter.
+    The tournaments use the Fighter and Fight contracts.
+    @author Maxime Niankouri - PlayMakers - 2023
+    @version 1.0.0
+*)
 #include "tournament.schema.mligo"
 #include "error.mligo"
 
+(** Private function to check that the caller is admin *)
 let _admin_only (d: tournament_storage) =
     if Tezos.get_sender () <> d.admin then failwith ERROR.rights_admin
 
+(** Private function to get fighter data out of its id from Fighter contract *)
 let _get_fighter_data (a,d: fighter_id * tournament_storage) =
     (Option.unopt_with_error (Tezos.call_view "get_fighter_data" a d.fighter_addr) ERROR.fighter_id
     : fighter_data)
+
+(** Private function to get tournament data out of its id *)
 let _get_tournament_data (id, d: tournament_id * tournament_storage) =
     Option.unopt_with_error (Big_map.find_opt id d.tournaments) ERROR.tournament_id
 
@@ -20,10 +37,16 @@ let set_fighter_addr (addr, d : address * tournament_storage) =
     let _ = _admin_only d in
     [], {d with fighter_addr = addr}
 
+(** SinkFees entrypoint
+    Allow the admin to retrieve the funds stored on the contract
+    TODO Should only take out the fees, not the full balance with rewards
+    @caller admin
+*)
 let sink_fees (addr, d: address * tournament_storage) =
     let _ = _admin_only d in
     [Tezos.transaction unit (Tezos.get_balance ()) (Tezos.get_contract addr)], d
 
+(** Initializing a new tournament object with default values *)
 let new_tournament (id, stake, stamp: tournament_id * tournament_stake * timestamp) : tournament_data =
 	{
 		id = id;
@@ -37,6 +60,10 @@ let new_tournament (id, stake, stamp: tournament_id * tournament_stake * timesta
 		state = Open
 	}
 
+(** CreateTournament entrypoint
+	@caller tournament_manager
+	@event newTournament (id, stake, timestamp)
+*)
 let create_tournament (stake, stamp, d: tournament_stake * timestamp * tournament_storage) =
     let _ = _admin_only d in
     [Tezos.emit "%newTournament" (d.next_id, stake, stamp)],
@@ -46,7 +73,9 @@ let create_tournament (stake, stamp, d: tournament_stake * timestamp * tournamen
     	active_tournaments = Set.add d.next_id d.active_tournaments
     }
 
-
+(** CancelTournament entrypoint
+	@caller tournament_manager
+*)
 let cancel_tournament (id, d: tournament_id * tournament_storage) =
     let _ = _admin_only d in
     let t = _get_tournament_data (id,d) in
@@ -59,6 +88,10 @@ let cancel_tournament (id, d: tournament_id * tournament_storage) =
 		tournaments = Big_map.update id (Some {t with state = Cancelled}) d.tournaments
 	}
 
+(** JoinTournament entrypoint
+	Allow a fighter to register for a tournament in Open state
+	@caller owner
+*)
 let join_tournament (id, a, d: tournament_id * fighter_id * tournament_storage) =
 	let t = _get_tournament_data (id,d) in
     let _ = if t.state <> Open then failwith ERROR.join_not_open in
@@ -77,6 +110,13 @@ let join_tournament (id, a, d: tournament_id * fighter_id * tournament_storage) 
 	{ d with tournaments = Big_map.update id (Some {t with fighters = Set.add a t.fighters}) d.tournaments }
 
 
+(** GenerateTree entrypoint
+	Go from the Open to the Closed phase: it is not possible for fighters to register
+	any more, but the fights are not starting just yet.
+	We compute the brackets.
+	@caller tournament_manager
+	@event generatedTree tournament_id
+*)
 let generate_tree (id, seed, d: tournament_id * nat * tournament_storage) =
     let _ = _admin_only d in
     let t = _get_tournament_data (id,d) in
@@ -90,6 +130,10 @@ let generate_tree (id, seed, d: tournament_id * nat * tournament_storage) =
 	} in
 	[Tezos.emit "%generatedTree" id], { d with tournaments = Big_map.update id (Some t) d.tournaments }
 
+(** NextPhase entrypoint
+	TODO Not implemented yet
+	@caller tournament_manager
+*)
 let next_phase (id, d: tournament_id * tournament_storage) =
     let _ = _admin_only d in
     let t = _get_tournament_data (id,d) in
@@ -100,6 +144,7 @@ let next_phase (id, d: tournament_id * tournament_storage) =
     // Don't forget to remove from active_tournaments
 
 
+(** Main function of the smart contract *)
 let main (action, d: tournament_parameter * tournament_storage) = 
     ( match action with
     | SetTournamentFee value -> set_tournament_fee(value,d)
