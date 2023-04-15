@@ -33,18 +33,20 @@ let beforeListing (f: fighter_data) =
     @call Fighter SetFighterListed
     @event sold (fighter_id, tez)
 *)
-let transaction (id, price, seller, buyer, d : fighter_id * tez * address * address * marketfighter_storage) =
-    let buy_map = (match (Big_map.find_opt id d.buys) with
-        | None -> None
+let transaction (id, price, seller, buyer, op, d : fighter_id * tez * address * address * operation list * marketfighter_storage) =
+    let (buy_map,lo) = (match (Big_map.find_opt id d.buys) with
+        | None -> (None, d.listed_offer)
         | Some map -> let map = Map.remove buyer map in
-            if Map.size map = 0n then None else Some map 
+            if Map.size map = 0n then (None, Set.remove id d.listed_offer) else (Some map, d.listed_offer)
     ) in
-    [Tezos.transaction (SetFighterListed (id,false)) 0tez (Tezos.get_contract d.fighter_addr);
-     Tezos.transaction (Transfer (id,buyer)) 0tez (Tezos.get_contract d.fighter_addr);
-     Tezos.transaction unit price (Tezos.get_contract seller);
-     Tezos.emit "%sold" (id,price)],
+    (Tezos.transaction (SetFighterListed (id,false)) 0tez (Tezos.get_contract d.fighter_addr))::
+    (Tezos.transaction (Transfer (id,buyer)) 0tez (Tezos.get_contract d.fighter_addr))::
+    (Tezos.transaction unit price (Tezos.get_contract seller))::
+    (Tezos.emit "%sold" (id,price))::
+    op,
     { d with
         listed_sale = Set.remove id d.listed_sale;
+        listed_offer = lo;
         sells = Big_map.remove id d.sells;
         buys = Big_map.update id buy_map d.buys
     }
@@ -84,11 +86,10 @@ let sell (id, price, d : fighter_id * tez * marketfighter_storage) =
             listed_sale = Set.add id d.listed_sale;
             sells = Big_map.update id (Some data) d.sells
         }
-    else transaction (id, price, f.owner, buyer, d)
+    else transaction (id, price, f.owner, buyer, [], d)
 
 (** Buy entrypoint
     Bid on a fighter (or directly buy it if the bid is higher than the current sale.
-    TODO case where the buyer change price without canceling
     TODO case where the fighter is transferred to the buyer via another mean
     @caller !owner
     @amount price
@@ -103,24 +104,23 @@ let buy (id, price, d : fighter_id * tez * marketfighter_storage) =
     let (sold, sell_price) : bool * tez = (match (Big_map.find_opt id d.sells) with
         | None -> (false, 0tez)
         | Some data -> ((data.price <= price), data.price)
+    ) in    
+    let data : marketfighter_data = {
+        date = Tezos.get_now ();
+        price = price
+    } in
+    let (buy_map,prev) = (match (Big_map.find_opt id d.buys) with
+        | None -> (Map.literal [(buyer,data)], None)
+        | Some map -> (Map.update buyer (Some data) map, Map.find_opt buyer map)
+    ) in
+    let op = (match prev with
+        | None -> []
+        | Some md -> [Tezos.transaction unit md.price (Tezos.get_contract buyer)]
     ) in
     if sold
-    then transaction(id, sell_price, f.owner, buyer, d)
+    then transaction(id, sell_price, f.owner, buyer, op, d)
     else
-        let data : marketfighter_data = {
-            date = Tezos.get_now ();
-            price = price
-        } in
-        let (buy_map,prev) = (match (Big_map.find_opt id d.buys) with
-            | None -> (Map.literal [(buyer,data)], None)
-            | Some map -> (Map.update buyer (Some data) map, Map.find_opt buyer map)
-        ) in
-        let op = [Tezos.emit "%buying" id] in
-        let op = (match prev with
-            | None -> op
-            | Some md -> (Tezos.transaction unit md.price (Tezos.get_contract buyer))::op
-        ) in
-        op,
+        (Tezos.emit "%buying" id)::op,
         { d with
             listed_offer = Set.add id d.listed_offer;
             buys = Big_map.update id (Some buy_map) d.buys

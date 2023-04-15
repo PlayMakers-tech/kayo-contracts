@@ -117,7 +117,7 @@ let join_tournament (id, a, d: tournament_id * fighter_id * tournament_storage) 
 	@caller tournament_manager
 	@event generatedTree tournament_id
 *)
-let generate_tree (id, seed, d: tournament_id * nat * tournament_storage) =
+let generate_tree (id, _seed, d: tournament_id * nat * tournament_storage) =
     let _ = _admin_only d in
     let t = _get_tournament_data (id,d) in
     let _ = if t.state <> Open then failwith ERROR.close_not_open in
