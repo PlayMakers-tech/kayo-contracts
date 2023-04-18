@@ -102,17 +102,15 @@ let test =
     let ability_contract = Test.to_contract ability_typed_addr in
 
     // Attribute contract
-	let init_store: attribute_storage = {
-	    fight_addr = (admin_address: address);
-	    fighter_addr = (admin_address: address);
+    let init_store: attribute_storage = {
+        fight_addr = (fight_addr: address);
+        fighter_addr = (fighter_addr: address);
         admin = (admin_address : address);
         skin_nodes = (1n, [(0x10,1n,1n)]);
         skin_leaves = (1n, [(0x00,2n,1n)]);
-	    attributes = Big_map.empty
-	} in
+        attributes = Big_map.empty
+    } in
     let attribute_addr, _, _ = Test.originate_from_file "attribute.mligo" "main" [] (Test.eval init_store) 0tez in
-    let attribute_typed_addr: (attribute_parameter, attribute_storage) typed_address = Test.cast_address attribute_addr in
-    let attribute_contract = Test.to_contract attribute_typed_addr in
 
     // Marketfighter contract
     let init_store: marketfighter_storage = {
@@ -128,9 +126,10 @@ let test =
     } in
     let marketfighter_addr, _, _ = Test.originate_from_file "marketfighter.mligo" "main" [] (Test.eval init_store) 0tez in
 
-    let test_attribute (name : string) (addr, op, amount : address * attribute_parameter * tez) (expected : bool) =
+
+    let test_ability (name : string) (addr, op, amount : address * ability_parameter * tez) (expected : bool) =
         let _ = Test.set_source addr in
-        test_entrypoint name (Test.transfer_to_contract attribute_contract op amount) expected
+        test_entrypoint name (Test.transfer_to_contract ability_contract op amount) expected
     in
 
     let _ = Test.set_source admin_address in
@@ -143,25 +142,8 @@ let test =
     let _ = Test.transfer_to_contract fight_contract   (SetTournamentAddr   tournament_addr  ) 0tez in
 
     let _ = print_topic ("SetFighterAddr") in
-    let _ = test_attribute "Should not allow user to use SetFighterAddr entrypoint"  (alice_address, SetFighterAddr fighter_addr, 0tez) false in
-    let _ = test_attribute "Should allow admin to use SetFighterAddr entrypoint"     (admin_address, SetFighterAddr fighter_addr, 0tez) true in
-
-    let _ = print_topic ("SetFightAddr") in
-    let _ = test_attribute "Should not allow user to use SetFightAddr entrypoint"  (alice_address, SetFightAddr fight_addr, 0tez) false in
-    let _ = test_attribute "Should allow admin to use SetFightAddr entrypoint"     (admin_address, SetFightAddr fight_addr, 0tez) true in
-
-    // Create abilities
-    let rl : rarity list =
-    	[Common;Common;Common;Common;Common;Common;Common;Common;Common;Common;
-		 Rare;Rare;Rare;Rare;Rare;
-		 Epic;Epic;Epic;
-		 Unique] in
-    let _ = 
-        (match Test.transfer_to_contract ability_contract (CreateAbility rl) 0tez with
-        | Success _ -> true
-        | Fail err -> Test.failwith err )
-        |> Test.assert 
-    in
+    let _ = test_ability "Should not allow user to use SetFighterAddr entrypoint"  (alice_address, SetFighterAddr fighter_addr, 0tez) false in
+    let _ = test_ability "Should allow admin to use SetFighterAddr entrypoint"     (admin_address, SetFighterAddr fighter_addr, 0tez) true in
 
     let _ = Test.set_source alice_address in
     let _ =  Test.transfer_to_contract fighter_contract (Mint) mint_fee in
@@ -176,72 +158,74 @@ let test =
     let _ = Test.set_source alice_address in
     let _ =  Test.transfer_to_contract fighter_contract (Mint) mint_fee in
     let alice_token : fighter_id = 4n in
-    let _ = Test.set_source bob_address in
-    let _ =  Test.transfer_to_contract fighter_contract (Mint) mint_fee in
-    let bob_token : fighter_id = 5n in
 
     let _ = Test.set_source admin_address in
     let _ = Test.transfer_to_contract fighter_contract (RealMint (token1,0xfb0504030201fb0101010101,[4n;5n;6n])) 0tez in
     let _ = Test.transfer_to_contract fighter_contract (RealMint (token2,0xfb0604030201fb0101010101,[4n;5n;6n])) 0tez in
     let _ = Test.transfer_to_contract fighter_contract (RealMint (token3,0xfb1004030201fb0101010101,[1n;6n;7n])) 0tez in
-    let _ = Test.transfer_to_contract fighter_contract (RealMint (alice_token,0xfb1404030201fb0101010101,[1n;6n;7n])) 0tez in
-    let _ = Test.transfer_to_contract fighter_contract (RealMint (bob_token,0xfb1005030201fb0101010101,[1n;6n;7n])) 0tez in
+    // let _ = Test.transfer_to_contract fighter_contract (RealMint (alice_token,0xfb1404030201fb0101010101,[1n;6n;7n])) 0tez in
 
-	// let (p, l) : (nat* attribute_skin_node list) = d.skin_leaves in
-    // let _ = Test.log p in
-    // let _ = Test.log l in
+    // *************** CreateAbility *************** //
+    let _ = print_topic ("CreateAbility") in
 
-    // ************ SetSkinNodes ******** // 
-    let _ = print_topic "SetSkinNodes" in
+    // Create abilities
+    let rl : rarity list =
+    	[Common;
+		 Rare;
+		 Epic;
+		 Unique] in
 
-
-    let _ = test_attribute "Should not allow user to use SetSkinNodes entrypoint"  (alice_address, SetSkinNodes (token1, [(0x00, 1n, 1n)]), 0tez) false in
-
-    let _ = test_attribute "Should allow admin to use SetSkinNodes entrypoint"     (admin_address, SetSkinNodes (token1, [(0x00, 1n, 1n)]), 0tez) true in
-
-    let d : attribute_storage = Test.get_storage_of_address attribute_addr |> Test.decompile in
-    let n, a : nat * (attribute_skin_node list) = d.skin_nodes in
-    let _ = print_checkmark (n = 1n && List.size a = 1n, true) in
-    let _ = print_step "SetSkinNodes works" in
-
-    // ************ SetSkinLeaves ******** // 
-    let _ = print_topic "SetSkinLeaves" in
-
-    let _ = test_attribute "Should not allow user to use SetSkinLeaves entrypoint"  (alice_address, SetSkinLeaves (token1, [(0x00, 1n, 1n)]), 0tez) false in
-
-    let _ = test_attribute "Should allow admin to use SetSkinLeaves entrypoint"     (admin_address, SetSkinLeaves (token1, [(0x00, 1n, 1n)]), 0tez) true in
- 
-    let d : attribute_storage = Test.get_storage_of_address attribute_addr |> Test.decompile in
-    let n, a : nat * (attribute_skin_node list) = d.skin_nodes in
-    let _ = print_checkmark (n = 1n && List.size a = 1n, true) in
-    let _ = print_step "SetSkinLeaves works" in
-
-
-    // ************ EarnXP ******** // 
-    let _ = print_topic "EarnXP" in
-
-    let _ = test_attribute "Should not allow user to use EarnXP entrypoint"  (alice_address, EarnXP (token1, 100n), 0tez) false in
-
-    let _ = test_attribute "Should allow admin to use EarnXP entrypoint"     (admin_address, EarnXP (token1, 100n), 0tez) true in
-
-    let d : attribute_storage = Test.get_storage_of_address attribute_addr |> Test.decompile in
-    let d : attribute_data = Big_map.find token1 d.attributes in
-    let _ = print_checkmark (d.xp = 100n, true) in
-    let _ = print_step "EarnXP works" in
-
-    // ************ Mint ******** //
-    let _ = print_topic "Mint" in
-
-    let _ = test_attribute "Should not allow user to use Mint entrypoint"  (alice_address, Mint (1n, 0x00), 0tez) false in
-
-    let _ = test_attribute "Should not allow admin to use Mint entrypoint" (admin_address, Mint (1n, 0x00), 0tez) false in
-
-    // ************ Fusion ******** // 
-    let _ = print_topic "Fusion" in
+    let _ = test_ability "Should not allow user to use CreateAbility entrypoint"  (alice_address, CreateAbility rl, 0tez) false in
     
-    let _ = test_attribute "Should not allow user to use Fusion entrypoint"  (alice_address, Fusion (1n, 2n, 6n, 0x00), 0tez) false in
+    let _ = test_ability "Should allow admin to use CreateAbility entrypoint"  (admin_address, CreateAbility rl, 0tez) true in
 
-    let _ = test_attribute "Should not allow admin to use Fusion entrypoint" (admin_address, Fusion (1n, 2n, 6n, 0x00), 0tez) false in
+    let d : ability_storage = Test.get_storage_of_address ability_addr |> Test.decompile in
+    let abilitiesCheck : bool = Big_map.mem 1n d.abilities && Big_map.mem 2n d.abilities && Big_map.mem 3n d.abilities && Big_map.mem 4n d.abilities in
+    let availableAbilitiesCheck : bool = Big_map.mem Common d.available_abilities && Big_map.mem Rare d.available_abilities && Big_map.mem Epic d.available_abilities && Big_map.mem Unique d.available_abilities in
+    let probaCheck : bool = Map.mem Common d.proba_rarity && Map.mem Rare d.proba_rarity && Map.mem Epic d.proba_rarity && Map.mem Unique d.proba_rarity in
+    let _ = print_checkmark (abilitiesCheck && availableAbilitiesCheck && d.next_id = 5n && probaCheck, true) in
+    let _ = print_step "Should have created 4 abilities" in
 
+    // *************** Mint *************** //
+    let _ = print_topic ("Mint") in
+
+    let _ = test_ability "Should not allow user to use Mint entrypoint"  (alice_address, Mint (token1, [1n]), 0tez) false in
+    
+    let _ = test_ability "Should not allow admin to use Mint entrypoint"  (admin_address, Mint (token1, [1n]), 0tez) false in
+
+
+    // *************** SetProbaRarity *************** //
+    let _ = print_topic ("SetProbaRarity") in
+    
+    let _ = test_ability "Should not allow user to use SetProbaRarity entrypoint"  (alice_address, SetProbaRarity (Common, 1n), 0tez) false in
+    
+    let _ = test_ability "Should allow admin to use SetProbaRarity entrypoint"  (admin_address, SetProbaRarity (Common, 1000000n), 0tez) true in
+    
+    let d : ability_storage = Test.get_storage_of_address ability_addr |> Test.decompile in
+    let _ = print_checkmark (Map.find Common d.proba_rarity = 1000000n, true) in
+    let _ = print_step "Should have set the proba of Common rarity to 1000000n" in
+
+
+    // *************** Fusion *************** //
+    let _ = print_topic ("Fusion") in
+    
+    let _ = test_ability "Should not allow user to use Fusion entrypoint"  (alice_address, Fusion (token1, token2, alice_token, [1n]), 0tez) false in
+    
+    let _ = test_ability "Should not allow admin to use Fusion entrypoint"  (admin_address, Fusion (token1, token2, alice_token, [1n]), 0tez) false in
+
+    // *************** LearnAbility *************** //
+    let _ = print_topic ("LearnAbility") in
+
+    let _ = test_ability "Should not allow user to use LearnAbility entrypoint"  (alice_address, LearnAbility (token1, 2n), 0tez) false in
+
+    let _ = test_ability "Should not allow admin to use LearnAbility entrypoint"  (admin_address, LearnAbility (token1, 2n), 0tez) false in
+
+    // *************** ForgetAbility *************** //
+    let _ = print_topic ("ForgetAbility") in
+
+    let _ = test_ability "Should not allow user to use ForgetAbility entrypoint"  (alice_address, ForgetAbility (token1, 1n), 0tez) false in
+
+    let _ = test_ability "Should not allow admin to use ForgetAbility entrypoint"  (admin_address, ForgetAbility (token1, 1n), 0tez) false in
+    
     let _ = Test.println "" in
     ()

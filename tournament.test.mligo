@@ -72,6 +72,8 @@ let test =
         tournaments = Big_map.empty;
     } in
     let tournament_addr, _, _ = Test.originate_from_file "tournament.mligo" "main" [] (Test.eval init_store) 0tez in
+    let tournament_typed_addr: (tournament_parameter, tournament_storage) typed_address = Test.cast_address tournament_addr in
+    let tournament_contract = Test.to_contract tournament_typed_addr in
 
     // Ability contract
 	let init_store: ability_storage = {
@@ -102,17 +104,15 @@ let test =
     let ability_contract = Test.to_contract ability_typed_addr in
 
     // Attribute contract
-	let init_store: attribute_storage = {
-	    fight_addr = (admin_address: address);
-	    fighter_addr = (admin_address: address);
+    let init_store: attribute_storage = {
+        fight_addr = (fight_addr: address);
+        fighter_addr = (fighter_addr: address);
         admin = (admin_address : address);
         skin_nodes = (1n, [(0x10,1n,1n)]);
         skin_leaves = (1n, [(0x00,2n,1n)]);
-	    attributes = Big_map.empty
-	} in
+        attributes = Big_map.empty
+    } in
     let attribute_addr, _, _ = Test.originate_from_file "attribute.mligo" "main" [] (Test.eval init_store) 0tez in
-    let attribute_typed_addr: (attribute_parameter, attribute_storage) typed_address = Test.cast_address attribute_addr in
-    let attribute_contract = Test.to_contract attribute_typed_addr in
 
     // Marketfighter contract
     let init_store: marketfighter_storage = {
@@ -128,9 +128,9 @@ let test =
     } in
     let marketfighter_addr, _, _ = Test.originate_from_file "marketfighter.mligo" "main" [] (Test.eval init_store) 0tez in
 
-    let test_attribute (name : string) (addr, op, amount : address * attribute_parameter * tez) (expected : bool) =
+    let test_tournament (name : string) (addr, op, amount : address * tournament_parameter * tez) (expected : bool) =
         let _ = Test.set_source addr in
-        test_entrypoint name (Test.transfer_to_contract attribute_contract op amount) expected
+        test_entrypoint name (Test.transfer_to_contract tournament_contract op amount) expected
     in
 
     let _ = Test.set_source admin_address in
@@ -142,13 +142,14 @@ let test =
     let _ = Test.transfer_to_contract fight_contract   (SetAttributeAddr    attribute_addr   ) 0tez in
     let _ = Test.transfer_to_contract fight_contract   (SetTournamentAddr   tournament_addr  ) 0tez in
 
-    let _ = print_topic ("SetFighterAddr") in
-    let _ = test_attribute "Should not allow user to use SetFighterAddr entrypoint"  (alice_address, SetFighterAddr fighter_addr, 0tez) false in
-    let _ = test_attribute "Should allow admin to use SetFighterAddr entrypoint"     (admin_address, SetFighterAddr fighter_addr, 0tez) true in
+    let _ = print_topic "SetFighterAddr" in
+    let _ = test_tournament "Should not allow user to use SetFighterAddr entrypoint"  (alice_address, SetFighterAddr fighter_addr, 0tez) false in
+    let _ = test_tournament "Should allow admin to use SetFighterAddr entrypoint"     (admin_address, SetFighterAddr fighter_addr, 0tez) true in
 
-    let _ = print_topic ("SetFightAddr") in
-    let _ = test_attribute "Should not allow user to use SetFightAddr entrypoint"  (alice_address, SetFightAddr fight_addr, 0tez) false in
-    let _ = test_attribute "Should allow admin to use SetFightAddr entrypoint"     (admin_address, SetFightAddr fight_addr, 0tez) true in
+    let _ = print_topic "SetFightAddr" in
+    let _ = test_tournament "Should not allow user to use SetFightAddr entrypoint"  (alice_address, SetFightAddr fight_addr, 0tez) false in
+    let _ = test_tournament "Should allow admin to use SetFightAddr entrypoint"     (admin_address, SetFightAddr fight_addr, 0tez) true in
+    
 
     // Create abilities
     let rl : rarity list =
@@ -162,6 +163,7 @@ let test =
         | Fail err -> Test.failwith err )
         |> Test.assert 
     in
+
 
     let _ = Test.set_source alice_address in
     let _ =  Test.transfer_to_contract fighter_contract (Mint) mint_fee in
@@ -187,61 +189,97 @@ let test =
     let _ = Test.transfer_to_contract fighter_contract (RealMint (alice_token,0xfb1404030201fb0101010101,[1n;6n;7n])) 0tez in
     let _ = Test.transfer_to_contract fighter_contract (RealMint (bob_token,0xfb1005030201fb0101010101,[1n;6n;7n])) 0tez in
 
-	// let (p, l) : (nat* attribute_skin_node list) = d.skin_leaves in
-    // let _ = Test.log p in
-    // let _ = Test.log l in
-
-    // ************ SetSkinNodes ******** // 
-    let _ = print_topic "SetSkinNodes" in
-
-
-    let _ = test_attribute "Should not allow user to use SetSkinNodes entrypoint"  (alice_address, SetSkinNodes (token1, [(0x00, 1n, 1n)]), 0tez) false in
-
-    let _ = test_attribute "Should allow admin to use SetSkinNodes entrypoint"     (admin_address, SetSkinNodes (token1, [(0x00, 1n, 1n)]), 0tez) true in
-
-    let d : attribute_storage = Test.get_storage_of_address attribute_addr |> Test.decompile in
-    let n, a : nat * (attribute_skin_node list) = d.skin_nodes in
-    let _ = print_checkmark (n = 1n && List.size a = 1n, true) in
-    let _ = print_step "SetSkinNodes works" in
-
-    // ************ SetSkinLeaves ******** // 
-    let _ = print_topic "SetSkinLeaves" in
-
-    let _ = test_attribute "Should not allow user to use SetSkinLeaves entrypoint"  (alice_address, SetSkinLeaves (token1, [(0x00, 1n, 1n)]), 0tez) false in
-
-    let _ = test_attribute "Should allow admin to use SetSkinLeaves entrypoint"     (admin_address, SetSkinLeaves (token1, [(0x00, 1n, 1n)]), 0tez) true in
- 
-    let d : attribute_storage = Test.get_storage_of_address attribute_addr |> Test.decompile in
-    let n, a : nat * (attribute_skin_node list) = d.skin_nodes in
-    let _ = print_checkmark (n = 1n && List.size a = 1n, true) in
-    let _ = print_step "SetSkinLeaves works" in
-
-
-    // ************ EarnXP ******** // 
-    let _ = print_topic "EarnXP" in
-
-    let _ = test_attribute "Should not allow user to use EarnXP entrypoint"  (alice_address, EarnXP (token1, 100n), 0tez) false in
-
-    let _ = test_attribute "Should allow admin to use EarnXP entrypoint"     (admin_address, EarnXP (token1, 100n), 0tez) true in
-
-    let d : attribute_storage = Test.get_storage_of_address attribute_addr |> Test.decompile in
-    let d : attribute_data = Big_map.find token1 d.attributes in
-    let _ = print_checkmark (d.xp = 100n, true) in
-    let _ = print_step "EarnXP works" in
-
-    // ************ Mint ******** //
-    let _ = print_topic "Mint" in
-
-    let _ = test_attribute "Should not allow user to use Mint entrypoint"  (alice_address, Mint (1n, 0x00), 0tez) false in
-
-    let _ = test_attribute "Should not allow admin to use Mint entrypoint" (admin_address, Mint (1n, 0x00), 0tez) false in
-
-    // ************ Fusion ******** // 
-    let _ = print_topic "Fusion" in
     
-    let _ = test_attribute "Should not allow user to use Fusion entrypoint"  (alice_address, Fusion (1n, 2n, 6n, 0x00), 0tez) false in
+    // ***************** SetTournamentFee *************** //
+    let _ = print_topic "SetTournamentFee" in
 
-    let _ = test_attribute "Should not allow admin to use Fusion entrypoint" (admin_address, Fusion (1n, 2n, 6n, 0x00), 0tez) false in
+    let _ = test_tournament "Should not allow user to use SetTournamentFee entrypoint"  (alice_address, SetTournamentFee 100tez, 0tez) false in
 
-    let _ = Test.println "" in
+    let _ = test_tournament "Should allow admin to use SetTournamentFee entrypoint"     (admin_address, SetTournamentFee 100tez, 0tez) true in    
+
+    let d : tournament_storage = Test.get_storage_of_address tournament_addr |> Test.decompile in
+    let _ = print_checkmark (d.tournament_fee=100tez, true) in
+    let _ = print_step "Tournament fee is updated in the memory" in
+
+    // ***************** CreateTournament *************** //
+    let _ = print_topic "CreateTournament" in
+
+    let _ = test_tournament "Should not allow user to use CreateTournament entrypoint"  (alice_address, CreateTournament (NoStake,Tezos.get_now () + 180), 0tez) false in
+
+    let _ = test_tournament "Should allow admin to use CreateTournament entrypoint"     (admin_address, CreateTournament (NoStake,Tezos.get_now () + 180), 0tez) true in
+
+    let d : tournament_storage = Test.get_storage_of_address tournament_addr |> Test.decompile in
+    let _ = print_checkmark (Big_map.mem 1n d.tournaments && Set.mem 1n d.active_tournaments && d.next_id = 2n, true) in
+    let _ = print_step "Tournament is created in the memory" in
+
+    // ***************** CancelTournament *************** //
+    let _ = print_topic "CancelTournament" in
+
+    let _ = test_tournament "Should not allow user to use CancelTournament entrypoint"  (alice_address, CancelTournament 1n, 0tez) false in
+
+    let _ = test_tournament "Should allow admin to use CancelTournament entrypoint"     (admin_address, CancelTournament 1n, 0tez) true in
+
+    let d : tournament_storage = Test.get_storage_of_address tournament_addr |> Test.decompile in
+    let _ = print_checkmark (Set.mem 1n d.active_tournaments, false) in
+    let _ = print_step "Tournament is cancelled in the memory" in
+
+    // ***************** JoinTournament *************** //
+    let _ = print_topic "JoinTournament" in
+
+    let _ = Test.set_source admin_address in
+    let _ = Test.transfer_to_contract tournament_contract (CreateTournament (NoStake,Tezos.get_now () + 180)) 0tez in
+
+    let _ = test_tournament "Should not allow user to use JoinTournament with a non-owned fighter"  (alice_address, JoinTournament (2n, token2), 100tez) false in
+
+    let _ = test_tournament "Should not allow user to use JoinTournament with an incorrect fee" (alice_address, JoinTournament (2n, token1), 10tez) false in
+    
+    let _ = Test.set_source admin_address in
+    let _ = Test.transfer_to_contract fighter_contract (SetFighterState (token1, 0n, 0n, FighterStakeQ)) 0tez in
+    let _ = test_tournament "Should not allow user to use JoinTournament if the fighter is in queue" (alice_address, JoinTournament (2n, token1), 100tez) false in
+
+    let _ = Test.set_source admin_address in
+    let _ = Test.transfer_to_contract fighter_contract (SetFighterState (token1, 0n, 1n, NotQueuing)) 0tez in
+    let _ = test_tournament "Should not allow user to use JoinTournament if the fighter is already in tounament" (alice_address, JoinTournament (2n, token1), 100tez) false in
+
+    let _ = Test.set_source admin_address in
+    let _ = Test.transfer_to_contract fighter_contract (SetFighterState (token1, 1n, 0n, NotQueuing)) 0tez in
+    let _ = test_tournament "Should not allow user to use JoinTournament if the fighter is in fight" (alice_address, JoinTournament (2n, token1), 100tez) false in
+    
+    let _ = Test.set_source admin_address in
+    let _ = Test.transfer_to_contract fighter_contract (SetFighterListed (token1, true)) 0tez in
+    let _ = test_tournament "Should not allow user to use JoinTournament if the fighter is listed" (alice_address, JoinTournament (2n, token1), 100tez) false in
+    let _ = Test.set_source admin_address in
+    let _ = Test.transfer_to_contract fighter_contract (SetFighterListed (token1, false)) 0tez in
+
+    let _ = Test.set_source alice_address in
+    let _ = Test.transfer_to_contract fighter_contract (Mint) 20tez in
+    let token4 : fighter_id = 6n in
+    let _ = test_tournament "Should not allow user to use JoinTournament if the fighter is not fully minted" (alice_address, JoinTournament (2n, token4), 100tez) false in
+    
+    let _ = Test.set_source admin_address in
+    let _ = Test.transfer_to_contract_exn fighter_contract (SetFighterState (token1, 0n, 0n, NotQueuing)) 0tez in
+    let _ = test_tournament "Should allow user to use JoinTournament" (alice_address, JoinTournament (2n, token1), 100tez) true in
+
+
+    // ***************** GenerateTree *************** //
+    let _ = print_topic "GenerateTree" in
+
+    let _ = Test.set_source bob_address in
+    let _ = Test.transfer_to_contract tournament_contract (JoinTournament (2n, token2)) 100tez in
+
+    let _ = test_tournament "Should not allow user to use GenerateTree entrypoint"  (alice_address, GenerateTree (2n, 1n), 0tez) false in
+
+    let _ = test_tournament "Should allow admin to use GenerateTree entrypoint"     (admin_address, GenerateTree (2n, 1n), 0tez) true in
+
+    // ***************** NextPhase *************** //
+    let _ = print_topic "NextPhase" in
+
+    // ***************** SinkFees *************** //
+    let _ = print_topic "SinkFees" in
+
+    let _ = test_tournament "Should not allow user to use SinkFees entrypoint"  (alice_address, SinkFees alice_address, 0tez) false in
+
+    let _ = test_tournament "Should allow admin to use SinkFees entrypoint"     (admin_address, SinkFees alice_address, 0tez) true in
+    
+    let _ = Test.println "" in 
     ()
