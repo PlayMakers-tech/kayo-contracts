@@ -61,9 +61,12 @@ module ERROR =
 	let min_price     = "Minimum price not reached"
 	let already_owned = "Fighter already owned"
 	let not_listed    = "Fighter not listed"
+	let no_offer      = "No offer to cancel on the Fighter"
 
 	let item_no_stock   = "Item out of stock"
 	let item_not_enough = "Not enough item owned"
+	let shop_closed     = "Shop currently closed"
+	let name_taken      = "Name for this new item/bundle already taken"
 
 end
 

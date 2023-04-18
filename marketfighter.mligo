@@ -138,15 +138,16 @@ let cancel (id, d : fighter_id * marketfighter_storage) =
     let sender = Tezos.get_sender () in
     if sender = f.owner then
         let _ = if (not Set.mem id d.listed_sale) then failwith ERROR.not_listed in
-        [Tezos.emit "%cancel_selling" id],
+        [Tezos.transaction (SetFighterListed (id,false)) 0tez (Tezos.get_contract d.fighter_addr);
+         Tezos.emit "%cancel_selling" id],
         { d with
             listed_sale = Set.remove id d.listed_sale;
             sells = Big_map.update id None d.sells
         }
     else
-        let _ = if Set.mem id d.listed_offer then failwith ERROR.not_listed in
+        let _ = if (not Set.mem id d.listed_offer) then failwith ERROR.not_listed in
         let (buy_map,data) = (match (Big_map.find_opt id d.buys) with
-            | None -> failwith ERROR.not_listed
+            | None -> failwith ERROR.no_offer
             | Some map -> (Map.update sender None map, Map.find_opt sender map)
         ) in
         let (listed, buy_map) = if Map.size buy_map = 0n

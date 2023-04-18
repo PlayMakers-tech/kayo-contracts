@@ -20,11 +20,13 @@ let sink_fees (addr, d: address * shop_storage) =
 
 let new_item (data, d: shop_item_data * shop_storage) = 
     let _ = _admin_only d in
+    let _ = if Map.mem data.item d.items then failwith ERROR.name_taken in
     [], { d with
         items = Map.add data.item data d.items
     }
 let new_bundle (data, d: shop_bundle_data * shop_storage) = 
     let _ = _admin_only d in
+    let _ = if Map.mem data.bundle d.bundles then failwith ERROR.name_taken in
     [], { d with
         bundles = Map.add data.bundle data d.bundles
     }
@@ -76,6 +78,7 @@ let _increment_item (item, qty, addr, d: shop_item * nat * address * shop_storag
     { d with owned_items = Big_map.update addr (Some b) d.owned_items }
 
 let grant_item (item,qty,addr,d: shop_item * nat * address * shop_storage) =
+    let _ = if d.is_open = false then failwith ERROR.shop_closed in
     let _ = _admin_only d in
     let data = _get_item_data (item,d) in
     let _ = if Tezos.get_amount () <> (data.price * qty) then failwith ERROR.price in
@@ -86,6 +89,7 @@ let grant_item (item,qty,addr,d: shop_item * nat * address * shop_storage) =
     [], d
 
 let buy_item (item, qty, d: shop_item * nat * shop_storage) =
+    let _ = if d.is_open = false then failwith ERROR.shop_closed in
     let data = _get_item_data (item,d) in
     let _ = if Tezos.get_amount () <> (data.price * qty) then failwith ERROR.price in
     let _ = if data.quantity < qty then failwith ERROR.item_no_stock in
@@ -96,6 +100,7 @@ let buy_item (item, qty, d: shop_item * nat * shop_storage) =
     [Tezos.emit "%boughtItem" (item,qty,addr)], d
 
 let buy_bundle (bundle, qty, d: shop_bundle * nat * shop_storage) =
+    let _ = if d.is_open = false then failwith ERROR.shop_closed in
     let data = _get_bundle_data (bundle,d) in    
     let _ = if Tezos.get_amount () <> (data.price * qty) then failwith ERROR.price in
     let _ = if data.quantity < qty then failwith ERROR.item_no_stock in

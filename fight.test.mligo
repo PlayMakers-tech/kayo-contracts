@@ -213,30 +213,29 @@ let test =
     let _ = Test.transfer_to_contract marketfighter_contract (Cancel token3) 0tez in
 
     let _ = Test.set_source admin_address in
-    let _ = Test.transfer_to_contract fighter_contract (SetFighterState (token3, 0n, 1n, NotQueuing)) 30tez in
+    let _ = Test.transfer_to_contract fighter_contract (SetFighterState (token3, 0n, 1n, NotQueuing)) 0tez in
     let _ = test_fight "Should not allow the user to AddToQueue a fighter in tournament" (alice_address, (AddToQueue (token3, NoStakeQ)), fight_fee) false in
     
     let _ = test_fight "Should not allow the user to AddToQueue a fighter in queue" (alice_address, (AddToQueue (token1, NoStakeQ)), fight_fee) false in
 
     let _ = Test.set_source admin_address in
-    let _ = Test.transfer_to_contract fighter_contract (SetFighterState (token3, 1n, 0n, NotQueuing)) 30tez in
+    let _ = Test.transfer_to_contract fighter_contract (SetFighterState (token3, 1n, 0n, NotQueuing)) 0tez in
     let _ = test_fight "Should not allow the user to AddToQueue a fighter in fight" (alice_address, (AddToQueue (token3, NoStakeQ)), fight_fee) false in
     let _ = Test.set_source admin_address in
-    let _ = Test.transfer_to_contract fighter_contract (SetFighterState (token3, 0n, 0n, NotQueuing)) 30tez in
+    let _ = Test.transfer_to_contract fighter_contract (SetFighterState (token3, 0n, 0n, NotQueuing)) 0tez in
 
     let _ = Test.set_source alice_address in
-    let _ = Test.transfer_to_contract fighter_contract (Mint) 20tez in
+    let _ = Test.transfer_to_contract fighter_contract (Mint) mint_fee in
     let token4 : fighter_id = 6n in
     let _ = test_fight "Should not allow the user to AddToQueue a fighter not fully minted" (alice_address, (AddToQueue (token4, NoStakeQ)), fight_fee) false in
 
-
-    let _ = Test.set_source alice_address in
-    let _ = Test.transfer_to_contract fighter_contract (Fusion (token1, token3)) fusion_fee in
-    let token4 : fighter_id = 6n in    
     let _ = Test.set_source admin_address in
     let _ = Test.transfer_to_contract fighter_contract (RealMint (token4, 0xfb5554535251fb1111111111, [])) 0tez in
-    
+
+    let _ = Test.set_source alice_address in
+    let _ = Test.transfer_to_contract fighter_contract (Fusion (token4, token3)) fusion_fee in    
     let _ = test_fight "Should not allow the user to AddToQueue an inactive fighter" (alice_address, (AddToQueue (token3, NoStakeQ)), fight_fee) false in
+
 
     // *************** SetFightFee *************** //
     let _ = print_topic "SetFightFee" in

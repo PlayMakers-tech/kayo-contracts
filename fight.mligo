@@ -178,6 +178,7 @@ let resolve_round (id, round, result, data, d: fight_id * nat * int * round_data
     let _ = _admin_only d in
 	let f = _get_fight_data (id,d) in
     let _ = if round <> (List.size f.rounds) +1n then failwith ERROR.invalid_round in
+    let _ = if round > f.round_cnt then failwith ERROR.invalid_round in
     let d = { d with
     	fights = Big_map.update id 
                 (Some { f with 
@@ -217,7 +218,8 @@ let add_to_queue (a, queue, d: fighter_id * fight_queue * fight_storage) =
     	| TezStakeQ v -> if Tezos.get_amount () <> (d.fight_fee + v) then failwith ERROR.stake
         | _ -> failwith ERROR.invalid_queue
     ) in
-    let _ = if fa.listed || fa.queue <> NotQueuing || fa.tournament <> 0n || fa.fight <> 0n
+    let _ = if fa.listed || fa.queue <> NotQueuing || fa.tournament <> 0n
+            || fa.fight <> 0n || fa.inactive = true || fa.minting = true
     then failwith ERROR.occupied in
 	let queue_set = _get_fighters_in_queue (queue,d) in
     [Tezos.transaction (SetFighterState (a,0n,0n,queue)) 0tez (Tezos.get_contract d.fighter_addr);

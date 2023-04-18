@@ -132,8 +132,7 @@ let test =
     let alice_tickets = Big_map.find alice_address d.owned_items in
     let n_ticket1 = Map.find "ticket1" alice_tickets in
     let n_ticket2 = Map.find "ticket2" alice_tickets in
-    // TODO Change 6n to 5n when the test on Open market is fix
-    let _ = print_checkmark (n_ticket1 = 6n && n_ticket2 = 2n, true) in
+    let _ = print_checkmark (n_ticket1 = 5n && n_ticket2 = 2n, true) in
     let _ = print_step "Alice has 5 ticket 1 and 2 ticket 2 in memory" in
     
     let _ = test_shop "Should not allow the user to purchase more bundles than possible" (alice_address, (BuyBundle ("bundle1",10n)), 30tez) false in
