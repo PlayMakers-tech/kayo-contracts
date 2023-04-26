@@ -133,6 +133,11 @@ let test =
         test_entrypoint name (Test.transfer_to_contract marketfighter_contract op amount) expected
     in
 
+    let test_fighter (name : string) (addr, op, amount : address * fighter_parameter * tez) (expected : bool) =
+        let _ = Test.set_source addr in
+        test_entrypoint name (Test.transfer_to_contract fighter_contract op amount) expected
+    in
+
     let _ = Test.set_source admin_address in
     let _ = Test.transfer_to_contract fighter_contract (SetFightAddr        fight_addr        ) 0tez in
     let _ = Test.transfer_to_contract fighter_contract (SetAbilityAddr      ability_addr     ) 0tez in
@@ -168,11 +173,15 @@ let test =
     let _ = Test.set_source alice_address in
     let _ =  Test.transfer_to_contract fighter_contract (Mint) mint_fee in
     let token3 : fighter_id = 3n in
+    let _ = Test.set_source alice_address in
+    let _ =  Test.transfer_to_contract fighter_contract (Mint) mint_fee in
+    let token4 : fighter_id = 4n in
 
     let _ = Test.set_source admin_address in
     let _ = Test.transfer_to_contract fighter_contract (RealMint (token1,0xfb0504030201fb0101010101,[4n;5n;6n])) 0tez in
     let _ = Test.transfer_to_contract fighter_contract (RealMint (token2,0xfb0604030201fb0101010101,[4n;5n;6n])) 0tez in
     let _ = Test.transfer_to_contract fighter_contract (RealMint (token3,0xfb1004030201fb0101010101,[1n;6n;7n])) 0tez in
+    let _ = Test.transfer_to_contract fighter_contract (RealMint (token4,0xfb1004030201fb0001010101,[1n;6n;7n])) 0tez in
 
 
     // ******************** SetMarketOpen test ******************** // 
@@ -287,9 +296,11 @@ let test =
     let _ = print_checkmark (Set.mem token3 d.listed_sale, false) in
     let _ = print_step "Sell the fighter at lower price" in
 
-    // TODO | It will be necessary to add the test which consists in creating an order of purchase 
-    // TODO | on the side of bob for a fighter belonging to alice. Then make a transfer from Alice to 
-    // TODO | Bob for this fighter. The purchase order should disappear automatically.  
+    let _ = test_marketfighter "Should allow bob to make an offer on a fighter" (bob_address, Buy (token4,15tez), 15tez) true in
+    let _ = test_fighter "Should allow Alice to transfer this fighter at Bob" (alice_address, Transfer (token4, bob_address), 0tez) true in
+    let d : marketfighter_storage = Test.get_storage_of_address marketfighter_addr |> Test.decompile in
+    let _ = print_checkmark ((Big_map.mem 4n d.buys) && (Set.mem 4n d.listed_offer), false) in
+    let _ = print_step "The fighter should be removed from listed_offer and buys in contract." in
 
     // ******************** Cancel test ******************** //
     let _ = print_topic "Cancel" in
