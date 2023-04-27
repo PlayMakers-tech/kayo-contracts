@@ -24,6 +24,7 @@ type fight_metadata = bytes
 type fight_id = nat
 type round_amount = nat
 type round_data = bytes
+type round_duration = int
 type strategy_data = bytes
 
 #include "fighter.schema.mligo"
@@ -38,6 +39,7 @@ type fight_data = {
     state: fight_state;
     result: int;
     start_date: timestamp;
+    round_duration: round_duration;
     metadata: fight_metadata
 }
 
@@ -58,7 +60,7 @@ type fight_parameter =
 | SetFighterAddr of address
 | SetTournamentAddr of address
 | SetAttributeAddr of address
-| CreateFight of fighter_id * fighter_id * round_amount * fight_stake
+| CreateFight of fighter_id * fighter_id * round_amount * fight_stake * round_duration
 | ResolveRound of fight_id * nat * int * round_data
 | SetStrategy of fight_id * fighter_id * strategy_data
 | AddToQueue of fighter_id * fight_queue

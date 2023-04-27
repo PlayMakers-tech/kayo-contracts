@@ -264,7 +264,7 @@ let test =
     // *************** CreateFight *************** //
     let _ = print_topic "CreateFight" in
 
-    let _ = test_fight "Should not allow the User to CreateFight" (alice_address, (CreateFight (alice_token,bob_token,3n,NoStake)), 0tez) false in
+    let _ = test_fight "Should not allow the User to CreateFight" (alice_address, (CreateFight (alice_token,bob_token,3n,NoStake,120)), 0tez) false in
 
     let _ = Test.set_source alice_address in
     let _ = Test.transfer_to_contract fight_contract (AddToQueue (alice_token, NoStakeQ)) 10tez in
@@ -272,7 +272,7 @@ let test =
     let _ = Test.set_source bob_address in
     let _ = Test.transfer_to_contract fight_contract (AddToQueue (bob_token, FighterStakeQ)) 10tez in
     
-    let _ = test_fight "Should not allow the admin to CreateFight with fighter from different queue" (admin_address, (CreateFight (alice_token,bob_token,3n,NoStake)), 0tez) false in
+    let _ = test_fight "Should not allow the admin to CreateFight with fighter from different queue" (admin_address, (CreateFight (alice_token,bob_token,3n,NoStake,120)), 0tez) false in
 
     let _ = Test.set_source bob_address in
     let _ = Test.transfer_to_contract fight_contract (CancelQueue bob_token) 0tez in
@@ -280,7 +280,7 @@ let test =
     let _ = Test.set_source admin_address in
     let _ = Test.transfer_to_contract fighter_contract (SetFighterListed (bob_token, true)) 0tez in
     
-    let _ = test_fight "Should not allow the admin to CreateFight when one of the fighter is on sale" (admin_address, (CreateFight (alice_token,bob_token,3n,NoStake)), 0tez) false in
+    let _ = test_fight "Should not allow the admin to CreateFight when one of the fighter is on sale" (admin_address, (CreateFight (alice_token,bob_token,3n,NoStake,120)), 0tez) false in
     
     let _ = Test.set_source admin_address in
     let _ = Test.transfer_to_contract fighter_contract (SetFighterListed (bob_token, false)) 0tez in
@@ -297,7 +297,7 @@ let test =
     let _ = Test.set_source bob_address in
     let _ = Test.transfer_to_contract fight_contract (AddToQueue (bob_token, NoStakeQ)) 10tez in
 
-    let _ = test_fight "Should allow the admin to CreateFight" (admin_address, (CreateFight (alice_token,bob_token,3n,NoStake)), 0tez) true in
+    let _ = test_fight "Should allow the admin to CreateFight" (admin_address, (CreateFight (alice_token,bob_token,3n,NoStake,120)), 0tez) true in
 
     let d : fight_storage = Test.get_storage_of_address fight_addr |> Test.decompile in
     let _ = print_checkmark ((Big_map.mem 1n d.fights), true) in

@@ -266,7 +266,7 @@ let test =
     // Create Fight
     let _ = Test.set_source admin_address in
     let _ = 
-        (match Test.transfer_to_contract fight_contract (CreateFight (alice_token,bob_token,3n,NoStake)) 0tez with
+        (match Test.transfer_to_contract fight_contract (CreateFight (alice_token,bob_token,3n,NoStake,120)) 0tez with
         | Success _ -> true
         | Fail err -> Test.failwith err )
         |> Test.assert 

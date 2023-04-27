@@ -122,7 +122,8 @@ let sink_fees (addr, d: address * fight_storage) =
 
 
 (** Initializing a new fight object with default values *)
-let new_fight (id, a, b, round_cnt, stake: fight_id * fighter_id * fighter_id * round_amount * fight_stake) =
+let new_fight (id, a, b, round_cnt, stake, round_duration:
+        fight_id * fighter_id * fighter_id * round_amount * fight_stake * round_duration) =
     ({
         id = id;
         a = a;
@@ -133,17 +134,18 @@ let new_fight (id, a, b, round_cnt, stake: fight_id * fighter_id * fighter_id * 
         state = Initialized;
         result = 0;
         metadata = 0x00;
-        start_date = Tezos.get_now ()
+        start_date = Tezos.get_now ();
+        round_duration = round_duration
     } : fight_data)
 
 (** CreateFight entrypoint
     Initialize a new fight opposing two fighters named A and B
     @caller admin|Tournament
     @call Fighter SetFighterState
-    @event newFight (fight_id, fighter_id, fighter_id)
+    @event newRound (fight_id, fighter_id, fighter_id, round, deadline)
 *)
-let create_fight (a, b, round_cnt, stake, d: 
-		fighter_id * fighter_id * round_amount * fight_stake * fight_storage) =
+let create_fight (a, b, round_cnt, stake, round_duration, d: 
+		fighter_id * fighter_id * round_amount * fight_stake * round_duration * fight_storage) =
     let _ = if not (Set.mem (Tezos.get_sender ()) (Set.literal [d.admin;d.tournament_addr]))
     then failwith ERROR.rights_other in
     let fa = _get_fighter_data (a,d) in
@@ -159,10 +161,10 @@ let create_fight (a, b, round_cnt, stake, d:
     let fbf = Big_map.update b (Some fbfb) fbf in
 	[Tezos.transaction (SetFighterState (a,d.next_id,fa.tournament,NotQueuing)) 0tez (Tezos.get_contract d.fighter_addr);
 	 Tezos.transaction (SetFighterState (b,d.next_id,fb.tournament,NotQueuing)) 0tez (Tezos.get_contract d.fighter_addr);
-     Tezos.emit "%newFight" (d.next_id, a, b)],
+     Tezos.emit "%newRound" (d.next_id, a, b, 1n, (Tezos.get_now ()) + round_duration)],
 	{ d with 
         next_id = d.next_id + 1n;
-        fights = Big_map.add d.next_id (new_fight (d.next_id, a, b, round_cnt, stake)) d.fights;
+        fights = Big_map.add d.next_id (new_fight (d.next_id, a, b, round_cnt, stake, round_duration)) d.fights;
         fights_by_fighter = fbf;
         queues = Big_map.update fa.queue (Some (Set.remove b (Set.remove a queue_set))) d.queues
 	}
@@ -172,7 +174,7 @@ let create_fight (a, b, round_cnt, stake, d:
     If this was the last round, this also resolved the whole fight.
     @caller admin|fightmanager
     @event roundResolved (fight_id, round, result, data)
-    @event nextRound (fight_id, fighter_id, fighter_id, round)
+    @event newRound (fight_id, fighter_id, fighter_id, round, deadline)
 *)
 let resolve_round (id, round, result, data, d: fight_id * nat * int * round_data * fight_storage) =
     let _ = _admin_only d in
@@ -189,7 +191,7 @@ let resolve_round (id, round, result, data, d: fight_id * nat * int * round_data
     } in
     let event = Tezos.emit "%roundResolved" (id, round, result, data) in
     if round < f.round_cnt
-    then [Tezos.emit "%nextRound" (id, f.a, f.b, round+1n);event], d
+    then [Tezos.emit "%newRound" (id, f.a, f.b, round+1n, (Tezos.get_now ())+f.round_duration);event], d
 	else _resolve_fight(id,event,d)
 
 (** SetStrategy entrypoint
@@ -252,7 +254,7 @@ let main (action, d: fight_parameter * fight_storage) =
     | SetFighterAddr addr -> set_fighter_addr(addr,d)
     | SetTournamentAddr addr -> set_tournament_addr(addr,d)
     | SetAttributeAddr addr -> set_attribute_addr(addr,d)
-    | CreateFight (a,b,round_cnt,stake) -> create_fight(a,b,round_cnt,stake,d)
+    | CreateFight (a,b,round_cnt,stake,round_duration) -> create_fight(a,b,round_cnt,stake,round_duration,d)
     | ResolveRound (id,round,result,data) -> resolve_round(id,round,result,data,d)
     | SetStrategy (id,a,data) -> set_strategy(id,a,data,d)
     | AddToQueue (a,queue) -> add_to_queue(a,queue,d)
