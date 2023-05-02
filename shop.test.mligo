@@ -2,6 +2,7 @@
 #include "error.mligo"
 #include "utils.mligo"
 #include "test.utils.mligo"
+#include "event.mligo"
 
 let test =
     let _ = Test.reset_state 4n [] in
@@ -89,6 +90,12 @@ let test =
     let _ = print_topic "Buy items" in
 
     let _ = test_shop "Should allow user to buy 1 ticket 1" (alice_address, (BuyItem ("ticket1",1n)), 1tez) true in
+
+    let event : event_bought_item list = Test.get_last_events_from shop_typed_addr "boughtItem" in
+    let _ = match (List.head_opt event) with
+      | Some (item, q, addr) -> print_checkmark (item = "ticket1" && q = 1n && addr = alice_address, true)
+      | None -> print_checkmark (false, true) in
+    let _ = print_step "Should catch boughtItem event" in
     
     let _ = test_shop "Should allow user to buy 2 ticket 1" (alice_address, (BuyItem ("ticket1",2n)), 2tez) true in
     
@@ -128,6 +135,12 @@ let test =
 
     let _ = test_shop "Should allow user to buy 1 bundle 1" (alice_address, (BuyBundle ("bundle1",1n)), 3tez) true in
     
+    let event : event_bought_bundle list = Test.get_last_events_from shop_typed_addr "boughtBundle" in
+    let _ = match (List.head_opt event) with
+      | Some (item, q, addr) -> print_checkmark (item = "bundle1" && q = 1n && addr = alice_address, true)
+      | None -> print_checkmark (false, true) in
+    let _ = print_step "Should catch boughtBundle event" in
+
     let d : shop_storage = Test.get_storage shop_typed_addr in
     let alice_tickets = Big_map.find alice_address d.owned_items in
     let n_ticket1 = Map.find "ticket1" alice_tickets in

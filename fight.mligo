@@ -15,6 +15,7 @@
 #include "fight.schema.mligo"
 #include "attribute.schema.mligo"
 #include "error.mligo"
+#include "event.mligo"
 
 (** Private function to check that the caller is admin *)
 let _admin_only (d: fight_storage) =
@@ -161,7 +162,7 @@ let create_fight (a, b, round_cnt, stake, round_duration, d:
     let fbf = Big_map.update b (Some fbfb) fbf in
 	[Tezos.transaction (SetFighterState (a,d.next_id,fa.tournament,NotQueuing)) 0tez (Tezos.get_contract d.fighter_addr);
 	 Tezos.transaction (SetFighterState (b,d.next_id,fb.tournament,NotQueuing)) 0tez (Tezos.get_contract d.fighter_addr);
-     Tezos.emit "%newRound" (d.next_id, a, b, 1n, (Tezos.get_now ()) + round_duration)],
+     Tezos.emit "%newRound" ((d.next_id, a, b, 1n, (Tezos.get_now ()) + round_duration): event_new_round)],
 	{ d with 
         next_id = d.next_id + 1n;
         fights = Big_map.add d.next_id (new_fight (d.next_id, a, b, round_cnt, stake, round_duration)) d.fights;
@@ -189,9 +190,9 @@ let resolve_round (id, round, result, data, d: fight_id * nat * int * round_data
                     state  = OnGoing
                 }) d.fights;
     } in
-    let event = Tezos.emit "%roundResolved" (id, round, result, data) in
+    let event = Tezos.emit "%roundResolved" ((id, round, result, data): event_round_resolved) in
     if round < f.round_cnt
-    then [Tezos.emit "%newRound" (id, f.a, f.b, round+1n, (Tezos.get_now ())+f.round_duration);event], d
+    then [Tezos.emit "%newRound" ((id, f.a, f.b, round+1n, (Tezos.get_now ())+f.round_duration): event_new_round);event], d
 	else _resolve_fight(id,event,d)
 
 (** SetStrategy entrypoint
@@ -203,7 +204,7 @@ let resolve_round (id, round, result, data, d: fight_id * nat * int * round_data
 let set_strategy (id, a, data, d: fight_id * fighter_id * strategy_data * fight_storage) =
     let fa = _get_fighter_data (a,d) in
     let _ = if Tezos.get_sender () <> fa.owner then failwith ERROR.rights_owner in
-    [Tezos.emit "%strategy" (id, a, data)], d
+    [Tezos.emit "%strategy" ((id, a, data): event_strategy)], d
 
 (** AddToQueue entrypoint
     Allow the owner of a fighter to queue the fighter for a fight.
@@ -225,7 +226,7 @@ let add_to_queue (a, queue, d: fighter_id * fight_queue * fight_storage) =
     then failwith ERROR.occupied in
 	let queue_set = _get_fighters_in_queue (queue,d) in
     [Tezos.transaction (SetFighterState (a,0n,0n,queue)) 0tez (Tezos.get_contract d.fighter_addr);
-     Tezos.emit "%addedToQueue" (a, queue)],
+     Tezos.emit "%addedToQueue" ((a, queue): event_added_to_queue)],
     { d with queues = Big_map.update queue (Some (Set.add a queue_set)) d.queues }
 
 (** Cancel entrypoint

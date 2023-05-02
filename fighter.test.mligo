@@ -2,6 +2,7 @@
 #include "error.mligo"
 #include "utils.mligo"
 #include "test.utils.mligo"
+#include "event.mligo"
 
 let get_fighter_data (id,d: fighter_id * fighter_storage) =
     Option.unopt_with_error (Big_map.find_opt id d.fighters) "Invalid fighter_id"
@@ -190,6 +191,12 @@ let test =
     let _ = print_checkmark (Big_map.mem 1n d.fighters, true) in
     let _ = print_step ("Fighter 1n is indeed present in memory") in
 
+    let event : event_minting list = Test.get_last_events_from fighter_typed_addr "minting" in
+    let _ = match (List.head_opt event) with
+      | Some (id) -> print_checkmark (id = alice_token1, true)
+      | None -> print_checkmark (false, true) in
+    let _ = print_step "Should catch minting event during the mint" in
+
     let _ = test_fighter "Should not allow user to mint a fighter with less tez than expected" (bob_address, Mint, 1tez) false in
     
     let _ = test_fighter "Should not allow user to mint a fighter with more tez than expected" (bob_address, Mint, 20tez) false in
@@ -219,6 +226,12 @@ let test =
 
     let _ = test_fighter "Should allow admin to realMint a fighter" (admin_address, (RealMint (alice_token1, 0xfb0504030201fb0101010101, [1n])), 0tez) true in
     
+    let event : event_minted list = Test.get_last_events_from fighter_typed_addr "minted" in
+    let _ = match (List.head_opt event) with
+      | Some (id) -> print_checkmark (id = alice_token1, true)
+      | None -> print_checkmark (false, true) in
+    let _ = print_step "Should catch minted event" in
+
     let _ = test_fighter "Should not allow admin to realMint agin a fighter" (admin_address, (RealMint (alice_token1, 0xfb0504030201fb0101010101, [])), 0tez) false in
 
     let d : ability_storage = Test.get_storage_of_address ability_addr |> Test.decompile in
@@ -294,13 +307,20 @@ let test =
 
     // ******************** Fusion test ******************** // 
     let _ = print_topic "Fusion" in
+    
+    let alice_token3 : fighter_id = 4n in    
 
     let _ = test_fighter "Should not allow user to make a fusion with the wrong fee" (alice_address, (Fusion (alice_token1, alice_token2)), fusion_fee) false in
     
     let _ = test_fighter "Should allow user to make a fusion of two fighters with the correct fee" (alice_address, (Fusion (alice_token1, alice_token2)), 30tez) true in
     
+    let event : event_minting list = Test.get_last_events_from fighter_typed_addr "minting" in
+    let _ = match (List.head_opt event) with
+      | Some (id) -> print_checkmark (id = alice_token3, true)
+      | None -> print_checkmark (false, true) in
+    let _ = print_step "Should catch minting event during fusion" in
+
     let _ = test_fighter "Should not allow the user to merge two fighters during a fusion" (alice_address, (Fusion (alice_token1, alice_token2)), 30tez) false in
-    
 
     let d : fighter_storage = Test.get_storage_of_address fighter_addr |> Test.decompile in
     let d1 : fighter_data = Big_map.find alice_token1 d.fighters in
@@ -308,7 +328,6 @@ let test =
     let _ = print_checkmark (d1.inactive && d2.inactive, true) in
     let _ = print_step "The father and mother tokens are well inactive" in
 
-    let alice_token3 : fighter_id = 4n in    
     let _ = Test.set_source admin_address in
     let _ = Test.transfer_to_contract fighter_contract (RealMint (alice_token3, 0xfb5554535251fb1111111111, [])) 0tez in
 
@@ -332,11 +351,11 @@ let test =
     // ******************** SetFighterListed test ******************** // 
     let _ = print_topic "SetFighterListed" in
 
-    let _ = test_fighter "Should not allow user to use SetFighterListed" (alice_address, (SetFighterListed (alice_token1, false)), 30tez) false in
+    let _ = test_fighter "Should not allow user to use SetFighterListed" (alice_address, (SetFighterListed (alice_token1, false)), 0tez) false in
     
-    let _ = test_fighter "Should allow admin to use SetFighterListed on an active fighter" (admin_address, (SetFighterListed (alice_token3, true)), 30tez) true in
+    let _ = test_fighter "Should allow admin to use SetFighterListed on an active fighter" (admin_address, (SetFighterListed (alice_token3, true)), 0tez) true in
     
-    let _ = test_fighter "Should not allow admin to use SetFighterListed on an inactive fighter." (admin_address, (SetFighterListed (alice_token1, true)), 30tez) false in
+    let _ = test_fighter "Should not allow admin to use SetFighterListed on an inactive fighter." (admin_address, (SetFighterListed (alice_token1, true)), 0tez) false in
     let _ = Test.transfer_to_contract fighter_contract (SetFighterListed (alice_token1, false)) 30tez in
     
     let d : fighter_storage = Test.get_storage_of_address fighter_addr |> Test.decompile in
@@ -372,6 +391,12 @@ let test =
     let d : fighter_data = Big_map.find alice_token3 d.fighters in
     let _ = print_checkmark (d.owner = bob_address, true) in
     let _ = print_step "The owner as correctly been updated" in
+
+    let event : event_transfer list = Test.get_last_events_from fighter_typed_addr "transfer" in
+    let _ = match (List.head_opt event) with
+      | Some (id, f, t) -> print_checkmark (id = alice_token3 && f = alice_address && t = bob_address, true)
+      | None -> print_checkmark (false, true) in
+    let _ = print_step "Should catch transfer event" in
 
     let _ = test_fighter "Should not allow the user to transfer an inactive fighter" (alice_address, (Transfer (alice_token1, bob_address)), 30tez) false in
 

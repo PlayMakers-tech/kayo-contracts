@@ -1,5 +1,6 @@
 #include "shop.schema.mligo"
 #include "error.mligo"
+#include "event.mligo"
 
 let _admin_only (d: shop_storage) =
     if Tezos.get_sender () <> d.admin then failwith ERROR.rights_admin
@@ -97,7 +98,7 @@ let buy_item (item, qty, d: shop_item * nat * shop_storage) =
     let d = { d with items = Map.update item (Some data) d.items } in
     let addr = Tezos.get_sender () in
     let d  = _increment_item (item,qty,addr,d) in
-    [Tezos.emit "%boughtItem" (item,qty,addr)], d
+    [Tezos.emit "%boughtItem" ((item,qty,addr): event_bought_item)], d
 
 let buy_bundle (bundle, qty, d: shop_bundle * nat * shop_storage) =
     let _ = if d.is_open = false then failwith ERROR.shop_closed in
@@ -110,7 +111,7 @@ let buy_bundle (bundle, qty, d: shop_bundle * nat * shop_storage) =
     let folded = fun (dd,(i,n): shop_storage * (shop_item * nat)) ->
         _increment_item (i, qty*n, addr, dd) in
     let d = Map.fold folded data.items d in
-    [Tezos.emit "%boughtBundle" (bundle,qty,addr)], d
+    [Tezos.emit "%boughtBundle" ((bundle,qty,addr): event_bought_bundle)], d
 
 
 let main (action, d: shop_parameter * shop_storage) = 

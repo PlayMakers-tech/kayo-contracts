@@ -2,6 +2,7 @@
 #include "error.mligo"
 #include "utils.mligo"
 #include "test.utils.mligo"
+#include "event.mligo"
 
 let get_fighter_data (id,d: fighter_id * fighter_storage) =
     Option.unopt_with_error (Big_map.find_opt id d.fighters) "Invalid fighter_id"
@@ -208,6 +209,12 @@ let test =
 
     let _ = test_tournament "Should allow admin to use CreateTournament entrypoint"     (admin_address, CreateTournament (NoStake,Tezos.get_now () + 180), 0tez) true in
 
+    let event : event_new_tournament list = Test.get_last_events_from tournament_typed_addr "newTournament" in
+    let _ = match (List.head_opt event) with
+      | Some (id, s, _) -> print_checkmark (id = 1n && s = NoStake, true)
+      | None -> print_checkmark (false, true) in
+    let _ = print_step "Should catch newTournament event" in
+
     let d : tournament_storage = Test.get_storage_of_address tournament_addr |> Test.decompile in
     let _ = print_checkmark (Big_map.mem 1n d.tournaments && Set.mem 1n d.active_tournaments && d.next_id = 2n, true) in
     let _ = print_step "Tournament is created in the memory" in
@@ -270,6 +277,12 @@ let test =
     let _ = test_tournament "Should not allow user to use GenerateTree entrypoint"  (alice_address, GenerateTree (2n, 1n), 0tez) false in
 
     let _ = test_tournament "Should allow admin to use GenerateTree entrypoint"     (admin_address, GenerateTree (2n, 1n), 0tez) true in
+
+    let event : event_generate_tree list = Test.get_last_events_from tournament_typed_addr "generatedTree" in
+    let _ = match (List.head_opt event) with
+      | Some (id) -> print_checkmark (id = 2n, true)
+      | None -> print_checkmark (false, true) in
+    let _ = print_step "Should catch generatedTree event catch" in
 
     // ***************** NextPhase *************** //
     let _ = print_topic "NextPhase" in

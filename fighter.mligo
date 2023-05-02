@@ -16,6 +16,7 @@
 #include "ability.schema.mligo"
 #include "attribute.schema.mligo"
 #include "error.mligo"
+#include "event.mligo"
 
 (** Private function to check that the caller is admin *)
 let _admin_only (d: fighter_storage) =
@@ -66,7 +67,7 @@ let new_fighter (id, owner: fighter_id * address) =
 let mint (d : fighter_storage) =
     let _ = if Tezos.get_amount () <> d.mint_fee then failwith ERROR.fee in
     let owner = Tezos.get_sender () in
-    [Tezos.emit "%minting" d.next_id],
+    [Tezos.emit "%minting" (d.next_id: event_minting)],
     { d with
         next_id = d.next_id + 1n;
         fighters = Big_map.add d.next_id (new_fighter (d.next_id, owner)) d.fighters;
@@ -97,7 +98,7 @@ let real_mint (id, attr, abil, d: fighter_id * bytes * (ability_id list) * fight
         else Fusion (id, f.father, f.mother, abil) in
     [Tezos.transaction ep_attr 0tez (Tezos.get_contract d.attribute_addr);
      Tezos.transaction ep_abil 0tez (Tezos.get_contract d.ability_addr);
-     Tezos.emit "%minted" id],
+     Tezos.emit "%minted" (id: event_minted)],
     { d with
         fighters = Big_map.update id (Some f) d.fighters;
         fighters_by_owner = fbo;
@@ -198,7 +199,7 @@ let fusion (father, mother, d: fighter_id * fighter_id * fighter_storage) =
     let fmap = Big_map.add d.next_id n d.fighters in
     let fmap = Big_map.update father (Some f) fmap in
     let fmap = Big_map.update mother (Some m) fmap in
-    [Tezos.emit "%minting" d.next_id],
+    [Tezos.emit "%minting" (d.next_id: event_minting)],
     { d with
         next_id = d.next_id + 1n;
         fighters = fmap;
@@ -236,7 +237,7 @@ let transfer (id, addr, d: fighter_id * address * fighter_storage) =
     let fbo = Big_map.update addr (Some set) d.fighters_by_owner in
     let old = Set.remove id (_get_fighters_by_owner (f.owner, d)) in
     let fbo = Big_map.update f.owner (if (Set.cardinal old) = 0n then None else Some old) fbo in
-    [Tezos.emit "%transfer" (id, f.owner, addr)],
+    [Tezos.emit "%transfer" ((id, f.owner, addr): event_transfer)],
     { d with
         fighters = Big_map.update id (Some {f with owner = addr}) d.fighters;
         fighters_by_owner = fbo;

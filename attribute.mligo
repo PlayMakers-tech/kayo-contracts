@@ -11,6 +11,7 @@
 #include "attribute.schema.mligo"
 #include "utils.mligo"
 #include "error.mligo"
+#include "event.mligo"
 
 (** Private function to check that the caller is admin *)
 let _admin_only (d: attribute_storage) =
@@ -115,7 +116,7 @@ let earn_xp (id, xp, d: fighter_id * nat * attribute_storage) =
     then failwith ERROR.rights_other in
 	let attr = _get_attribute_data (id,d) in
 	let (attr, lvl) = _add_xp_and_lvl_up (attr,xp,0n) in
-	let op = if lvl = 0n then [] else [Tezos.emit "%levelUp" (id, lvl)] in
+	let op = if lvl = 0n then [] else [Tezos.emit "%levelUp" ((id, lvl): event_level_up)] in
 	op, { d with attributes = Big_map.update id (Some attr) d.attributes }
 
 (** Mint entrypoint

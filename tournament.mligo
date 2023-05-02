@@ -13,6 +13,7 @@
 *)
 #include "tournament.schema.mligo"
 #include "error.mligo"
+#include "event.mligo"
 
 (** Private function to check that the caller is admin *)
 let _admin_only (d: tournament_storage) =
@@ -66,7 +67,7 @@ let new_tournament (id, stake, stamp: tournament_id * tournament_stake * timesta
 *)
 let create_tournament (stake, stamp, d: tournament_stake * timestamp * tournament_storage) =
     let _ = _admin_only d in
-    [Tezos.emit "%newTournament" (d.next_id, stake, stamp)],
+    [Tezos.emit "%newTournament" ((d.next_id, stake, stamp): event_new_tournament)],
     { d with
         next_id = d.next_id + 1n;
         tournaments = Big_map.add d.next_id (new_tournament (d.next_id, stake, stamp)) d.tournaments;
@@ -128,7 +129,7 @@ let generate_tree (id, _seed, d: tournament_id * nat * tournament_storage) =
 		state = Closed;
 		scores = Set.fold _score_map t.fighters t.scores
 	} in
-	[Tezos.emit "%generatedTree" id], { d with tournaments = Big_map.update id (Some t) d.tournaments }
+	[Tezos.emit "%generatedTree" (id: event_generate_tree)], { d with tournaments = Big_map.update id (Some t) d.tournaments }
 
 (** NextPhase entrypoint
 	TODO Not implemented yet

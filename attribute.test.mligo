@@ -2,6 +2,7 @@
 #include "error.mligo"
 #include "utils.mligo"
 #include "test.utils.mligo"
+#include "event.mligo"
 
 let get_fighter_data (id,d: fighter_id * fighter_storage) =
     Option.unopt_with_error (Big_map.find_opt id d.fighters) "Invalid fighter_id"
@@ -223,6 +224,12 @@ let test =
     let _ = test_attribute "Should not allow user to use EarnXP entrypoint"  (alice_address, EarnXP (token1, 100n), 0tez) false in
 
     let _ = test_attribute "Should allow admin to use EarnXP entrypoint"     (admin_address, EarnXP (token1, 100n), 0tez) true in
+
+    let event : event_level_up list = Test.get_last_events_from attribute_typed_addr "levelUp" in
+    let _ = match (List.head_opt event) with
+      | Some (id, lv) -> print_checkmark (id = token1 && lv = 3n, true)
+      | None -> print_checkmark (false, true) in
+    let _ = print_step "Should catch levelUp event" in
 
     let d : attribute_storage = Test.get_storage_of_address attribute_addr |> Test.decompile in
     let d : attribute_data = Big_map.find token1 d.attributes in

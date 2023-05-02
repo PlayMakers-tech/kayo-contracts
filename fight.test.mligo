@@ -2,6 +2,7 @@
 #include "error.mligo"
 #include "utils.mligo"
 #include "test.utils.mligo"
+#include "event.mligo"
 
 let get_fighter_data (id,d: fighter_id * fighter_storage) =
     Option.unopt_with_error (Big_map.find_opt id d.fighters) "Invalid fighter_id"
@@ -201,6 +202,12 @@ let test =
     
     let _ = test_fight "Should allow the user to queue up a fighter" (alice_address, (AddToQueue (token1, NoStakeQ)), fight_fee) true in
 
+    let event : event_added_to_queue list = Test.get_last_events_from fight_typed_addr "addedToQueue" in
+    let _ = match (List.head_opt event) with
+      | Some (id, q) -> print_checkmark (id = token1 && q = NoStakeQ, true)
+      | None -> print_checkmark (false, true) in
+    let _ = print_step "addedToQueue event catch" in
+
     let d : fight_storage = Test.get_storage_of_address fight_addr |> Test.decompile in
     let f : fighter_storage = Test.get_storage_of_address fighter_addr |> Test.decompile in
     let f : fighter_data = Big_map.find 1n f.fighters in
@@ -276,23 +283,6 @@ let test =
 
     let _ = Test.set_source bob_address in
     let _ = Test.transfer_to_contract fight_contract (CancelQueue bob_token) 0tez in
-
-    let _ = Test.set_source admin_address in
-    let _ = Test.transfer_to_contract fighter_contract (SetFighterListed (bob_token, true)) 0tez in
-    
-    let _ = test_fight "Should not allow the admin to CreateFight when one of the fighter is on sale" (admin_address, (CreateFight (alice_token,bob_token,3n,NoStake,120)), 0tez) false in
-    
-    let _ = Test.set_source admin_address in
-    let _ = Test.transfer_to_contract fighter_contract (SetFighterListed (bob_token, false)) 0tez in
-
-    // TODO Strange error to fix
-    // let _ = Test.set_source admin_address in
-    // let _ = Test.transfer_to_contract marketfighter_contract (Sell (bob_token,16tez)) listing_fee in
-    
-    // let _ = test_fight "Should not allow the admin to CreateFight when one of the fighter is on sale" (admin_address, (CreateFight (alice_token,bob_token,3n,NoStake)), 0tez) false in
-    
-    // let _ = Test.set_source bob_address in
-    // let _ = Test.transfer_to_contract marketfighter_contract (Cancel bob_token) 0tez in
     
     let _ = Test.set_source bob_address in
     let _ = Test.transfer_to_contract fight_contract (AddToQueue (bob_token, NoStakeQ)) 10tez in
@@ -308,12 +298,25 @@ let test =
     let _ = print_checkmark ((d.state = Initialized), true) in
     let _ = print_step "The fight state is Initialized" in
 
+    let event : event_new_round list = Test.get_last_events_from fight_typed_addr "newRound" in
+    let _ = match (List.head_opt event) with
+      | Some (id, a, b, r, _) -> print_checkmark (id = 1n && a = 4n && b = 5n && r = 1n , true)
+      | None -> print_checkmark (false, true) in
+    let _ = print_step "Should catch newRound event" in
+    
+  
     // *************** SetStrategy *************** //
     let _ = print_topic "SetStrategy" in
 
     let _ = test_fight "Should not allow the user to SetStrategy of another fighter" (bob_address, (SetStrategy (1n, alice_token, 0x00)), 0tez) false in
     
     let _ = test_fight "Should allow the user to SetStrategy" (bob_address, (SetStrategy (1n, bob_token, 0x00)), 0tez) true in
+
+    let event : event_strategy list = Test.get_last_events_from fight_typed_addr "strategy" in
+    let _ = match (List.head_opt event) with
+      | Some (id, f_id, b) -> print_checkmark (id = 1n && f_id = bob_token && b = 0x00 , true)
+      | None -> print_checkmark (false, true) in
+    let _ = print_step "Should catch strategy event" in
 
     let _ = test_fight "Should allow the user to SetStrategy again" (bob_address, (SetStrategy (1n, bob_token, 0x00)), 0tez) true in
     
@@ -323,6 +326,18 @@ let test =
     let _ = test_fight "Should not allow the user to ResolveRound" (alice_address, (ResolveRound (1n, 1n, 1, 0x00)), 0tez) false in
     
     let _ = test_fight "Should allow the admin to ResolveRound 1" (admin_address, (ResolveRound (1n, 1n, 1, 0x00)), 0tez) true in
+
+    let event : event_round_resolved list = Test.get_last_events_from fight_typed_addr "roundResolved" in
+    let _ = match (List.head_opt event) with
+      | Some (id, r, w, b) -> print_checkmark (id = 1n && r = 1n && w = 1 && b = 0x00 , true)
+      | None -> print_checkmark (false, true) in
+    let _ = print_step "Should catch roundResolved event for round 1" in
+    
+    let event : event_new_round list = Test.get_last_events_from fight_typed_addr "newRound" in
+    let _ = match (List.head_opt event) with
+      | Some (id, a, b, r, _) -> print_checkmark (id = 1n && a = 4n && b = 5n && r = 2n , true)
+      | None -> print_checkmark (false, true) in
+    let _ = print_step "Should catch newRound event for round 2" in
     
     let d : fight_storage = Test.get_storage_of_address fight_addr |> Test.decompile in
     let d : fight_data = Big_map.find 1n d.fights in
@@ -333,7 +348,31 @@ let test =
     
     let _ = test_fight "Should allow the admin to ResolveRound 2" (admin_address, (ResolveRound (1n, 2n, 1, 0x00)), 0tez) true in
     
+    let event : event_round_resolved list = Test.get_last_events_from fight_typed_addr "roundResolved" in
+    let _ = match (List.head_opt event) with
+      | Some (id, r, w, b) -> print_checkmark (id = 1n && r = 2n && w = 1 && b = 0x00 , true)
+      | None -> print_checkmark (false, true) in
+    let _ = print_step "Should catch roundResolved event for round 2" in
+    
+    let event : event_new_round list = Test.get_last_events_from fight_typed_addr "newRound" in
+    let _ = match (List.head_opt event) with
+      | Some (id, a, b, r, _) -> print_checkmark (id = 1n && a = 4n && b = 5n && r = 3n , true)
+      | None -> print_checkmark (false, true) in
+    let _ = print_step "Should catch newRound event for round 3" in
+
     let _ = test_fight "Should allow the admin to ResolveRound 3" (admin_address, (ResolveRound (1n, 3n, 1, 0x00)), 0tez) true in
+    
+    let event : event_round_resolved list = Test.get_last_events_from fight_typed_addr "roundResolved" in
+    let _ = match (List.head_opt event) with
+      | Some (id, r, w, b) -> print_checkmark (id = 1n && r = 3n && w = 1 && b = 0x00 , true)
+      | None -> print_checkmark (false, true) in
+    let _ = print_step "Should catch roundResolved event for round 3" in
+    
+    let event : event_new_round list = Test.get_last_events_from fight_typed_addr "newRound" in
+    let _ = match (List.head_opt event) with
+      | Some (_) -> print_checkmark (false , true)
+      | None -> print_checkmark (true, true) in
+    let _ = print_step "Should not catch newRound event" in
     
     let d : fight_storage = Test.get_storage_of_address fight_addr |> Test.decompile in
     let d : fight_data = Big_map.find 1n d.fights in

@@ -2,6 +2,7 @@
 #include "error.mligo"
 #include "utils.mligo"
 #include "test.utils.mligo"
+#include "event.mligo"
 
 let get_fighter_data (id,d: fighter_id * fighter_storage) =
     Option.unopt_with_error (Big_map.find_opt id d.fighters) "Invalid fighter_id"
@@ -205,6 +206,12 @@ let test =
     // this step cost 1tez gas of fee
     let _ = test_marketfighter "Should allow user to make a buy offer" (bob_address, Buy (token1,12tez), 12tez) true in
 
+    let event : event_buying list = Test.get_last_events_from marketfighter_typed_addr "buying" in
+    let _ = match (List.head_opt event) with
+      | Some (id) -> print_checkmark (id = token1, true)
+      | None -> print_checkmark (false, true) in
+    let _ = print_step "Should catch buying event" in
+
     // this step cost 1tez gas of fee
     let _ = test_marketfighter "Should allow user to make a new buy offer" (bob_address, Buy (token1,15tez), 15tez) true in
     
@@ -233,6 +240,12 @@ let test =
     let _ = test_marketfighter "Should not allow user to sell a fighter below the minimum price" (alice_address, Sell (token3, 1mutez), listing_fee) false in
     
     let _ = test_marketfighter "Should allow user to sell a fighter" (alice_address, Sell (token3, 15tez), listing_fee) true in
+
+    let event : event_selling list = Test.get_last_events_from marketfighter_typed_addr "selling" in
+    let _ = match (List.head_opt event) with
+      | Some (id, price) -> print_checkmark (id = token3 && price = 15tez, true)
+      | None -> print_checkmark (false, true) in
+    let _ = print_step "Should catch selling event" in
 
     let _ = test_marketfighter "Should allow user to sell again a fighter to change the price" (alice_address, Sell (token3, 12tez), listing_fee) true in
 
@@ -270,6 +283,12 @@ let test =
     let _ = print_checkmark (Big_map.mem token3 d.fighters, true) in
     let _ = print_step "Buy at higher price" in
 
+    let event : event_sold list = Test.get_last_events_from marketfighter_typed_addr "sold" in
+    let _ = match (List.head_opt event) with
+      | Some (id, price) -> print_checkmark (id = token3 && price = 12tez, true)
+      | None -> print_checkmark (false, true) in
+    let _ = print_step "Should catch sold event during a buy" in
+
     let d : marketfighter_storage = Test.get_storage_of_address marketfighter_addr |> Test.decompile in
     let _ = print_checkmark (Set.mem token3 d.listed_sale, false) in
     let _ = print_step "Fighter remove from listed_sale" in    
@@ -296,6 +315,12 @@ let test =
     let _ = print_checkmark (Set.mem token3 d.listed_sale, false) in
     let _ = print_step "Sell the fighter at lower price" in
 
+    let event : event_sold list = Test.get_last_events_from marketfighter_typed_addr "sold" in
+    let _ = match (List.head_opt event) with
+      | Some (id, price) -> print_checkmark (id = token3 && price = 14tez, true)
+      | None -> print_checkmark (false, true) in
+    let _ = print_step "Should catch sold event during a sell" in
+
     let _ = test_marketfighter "Should allow bob to make an offer on a fighter" (bob_address, Buy (token4,15tez), 15tez) true in
     let _ = test_fighter "Should allow Alice to transfer this fighter at Bob" (alice_address, Transfer (token4, bob_address), 0tez) true in
     let d : marketfighter_storage = Test.get_storage_of_address marketfighter_addr |> Test.decompile in
@@ -312,6 +337,12 @@ let test =
 
     let _ = test_marketfighter "Should allow user to cancel his sell on a fighter" (alice_address,  Cancel token3, 0tez) true in
     
+    let event : event_cancel_selling list = Test.get_last_events_from marketfighter_typed_addr "cancelSelling" in
+    let _ = match (List.head_opt event) with
+      | Some (id) -> print_checkmark (id = token3, true)
+      | None -> print_checkmark (false, true) in
+    let _ = print_step "Should catch cancelSelling event" in
+
     let d : marketfighter_storage = Test.get_storage_of_address marketfighter_addr |> Test.decompile in
     let _ = print_checkmark (Set.mem token3 d.listed_sale, false) in
     let _ = print_step "Fighter remove from listed_sale" in    
@@ -325,6 +356,12 @@ let test =
     let _ = Test.transfer_to_contract marketfighter_contract (Buy (token3,8tez)) 8tez in    
 
     let _ = test_marketfighter "Should allow the user to cancel an offer" (bob_address, Cancel token3, 0tez) true in
+
+    let event : event_cancel_buying list = Test.get_last_events_from marketfighter_typed_addr "cancelBuying" in
+    let _ = match (List.head_opt event) with
+      | Some (id) -> print_checkmark (id = token3, true)
+      | None -> print_checkmark (false, true) in
+    let _ = print_step "Should catch cancelBuying event" in
 
     // ******************** SetListingFee test ******************** //
     let _ = print_topic "SetListingFee" in

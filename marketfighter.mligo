@@ -10,6 +10,7 @@
 *)
 #include "marketfighter.schema.mligo"
 #include "error.mligo"
+#include "event.mligo"
 
 (** Private function to check that the caller is admin *)
 let _admin_only (d: marketfighter_storage) =
@@ -42,7 +43,7 @@ let transaction (id, price, seller, buyer, op, d : fighter_id * tez * address * 
     (Tezos.transaction (SetFighterListed (id,false)) 0tez (Tezos.get_contract d.fighter_addr))::
     (Tezos.transaction (Transfer (id,buyer)) 0tez (Tezos.get_contract d.fighter_addr))::
     (Tezos.transaction unit price (Tezos.get_contract seller))::
-    (Tezos.emit "%sold" (id,price))::
+    (Tezos.emit "%sold" ((id,price): event_sold))::
     op,
     { d with
         listed_sale = Set.remove id d.listed_sale;
@@ -81,7 +82,7 @@ let sell (id, price, d : fighter_id * tez * marketfighter_storage) =
             price = price
         } in
         [Tezos.transaction (SetFighterListed (id,true)) 0tez (Tezos.get_contract d.fighter_addr);
-         Tezos.emit "%selling" (id,price)],
+         Tezos.emit "%selling" ((id,price): event_selling)],
         { d with
             listed_sale = Set.add id d.listed_sale;
             sells = Big_map.update id (Some data) d.sells
@@ -120,7 +121,7 @@ let buy (id, price, d : fighter_id * tez * marketfighter_storage) =
     if sold
     then transaction(id, sell_price, f.owner, buyer, op, d)
     else
-        (Tezos.emit "%buying" id)::op,
+        (Tezos.emit "%buying" (id: event_buying))::op,
         { d with
             listed_offer = Set.add id d.listed_offer;
             buys = Big_map.update id (Some buy_map) d.buys
@@ -130,8 +131,8 @@ let buy (id, price, d : fighter_id * tez * marketfighter_storage) =
     Cancel a Buy or Sell call.
     TODO Add timing constraints on buyer cancelling
     @caller any
-    @event cancel_selling fighter_id
-    @event cancel_buying fighter_id
+    @event cancelSelling fighter_id
+    @event cancelBuying fighter_id
 *)
 let cancel (id, d : fighter_id * marketfighter_storage) =
     let f = _get_fighter_data (id,d) in
@@ -139,7 +140,7 @@ let cancel (id, d : fighter_id * marketfighter_storage) =
     if sender = f.owner then
         let _ = if (not Set.mem id d.listed_sale) then failwith ERROR.not_listed in
         [Tezos.transaction (SetFighterListed (id,false)) 0tez (Tezos.get_contract d.fighter_addr);
-         Tezos.emit "%cancel_selling" id],
+         Tezos.emit "%cancelSelling" (id: event_cancel_selling)],
         { d with
             listed_sale = Set.remove id d.listed_sale;
             sells = Big_map.update id None d.sells
@@ -153,7 +154,7 @@ let cancel (id, d : fighter_id * marketfighter_storage) =
         let (listed, buy_map) = if Map.size buy_map = 0n
         then (Set.remove id d.listed_offer, None)
         else (d.listed_offer, Some buy_map) in
-        let op = [Tezos.emit "%cancel_buying" id] in
+        let op = [Tezos.emit "%cancelBuying" (id: event_cancel_buying)] in
         let op = (match data with
             | None -> op
             | Some md -> (Tezos.transaction unit md.price (Tezos.get_contract sender))::op
