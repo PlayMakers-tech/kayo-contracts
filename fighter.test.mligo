@@ -3,11 +3,6 @@
 
 let test =
 
-    let _ = print_topic "SetFightAddr" in
-    let _ = test_fighter "Should not allow user to use SetFightAddr entrypoint"  (alice_address, SetFightAddr fight_addr, 0tez) false in
-    let _ = test_fighter "Should allow admin to use SetFightAddr entrypoint"     (admin_address, SetFightAddr fight_addr, 0tez) true in
-
-
     let _ = print_topic "SetAbilityAddr" in
     let _ = test_fighter "Should not allow user to use SetAbilityAddr entrypoint"  (alice_address, SetAbilityAddr ability_addr, 0tez) false in
     let _ = test_fighter "Should allow admin to use SetAbilityAddr entrypoint"     (admin_address, SetAbilityAddr ability_addr, 0tez) true in
@@ -16,22 +11,9 @@ let test =
     let _ = test_fighter "Should not allow user to use SetAttributeAddr entrypoint"  (alice_address, SetAttributeAddr attribute_addr, 0tez) false in
     let _ = test_fighter "Should allow admin to use SetAttributeAddr entrypoint"     (admin_address, SetAttributeAddr attribute_addr, 0tez) true in
 
-    let _ = print_topic "SetMarketfighterAddr" in
-    let _ = test_fighter "Should not allow user to use SetMarketfighterAddr entrypoint"  (alice_address, SetMarketfighterAddr marketfighter_addr, 0tez) false in
-    let _ = test_fighter "Should allow admin to use SetMarketfighterAddr entrypoint"     (admin_address, SetMarketfighterAddr marketfighter_addr, 0tez) true in
-    
-    let _ = print_topic "SetTournamentAddr" in
-    let _ = test_fighter "Should not allow user to use SetTournamentAddr entrypoint"  (alice_address, SetTournamentAddr tournament_addr, 0tez) false in
-    let _ = test_fighter "Should allow admin to use SetTournamentAddr entrypoint"     (admin_address, SetTournamentAddr tournament_addr, 0tez) true in
-
     let _ = print_topic "SetAttributeAddr (fight_contract)" in
     let _ = test_fight "Should not allow user to use SetAttributeAddr entrypoint"  (alice_address, SetAttributeAddr attribute_addr, 0tez) false in
     let _ = test_fight "Should allow admin to use SetAttributeAddr entrypoint"     (admin_address, SetAttributeAddr attribute_addr, 0tez) true in
-
-    let _ = print_topic "SetTournamentAddr (fight_contract)" in
-    let _ = test_fight "Should not allow user to use SetTournamentAddr entrypoint"  (alice_address, SetTournamentAddr tournament_addr, 0tez) false in
-    let _ = test_fight "Should allow admin to use SetTournamentAddr entrypoint"     (admin_address, SetTournamentAddr tournament_addr, 0tez) true in
-
 
     // ******************** Mint test ******************** // 
     let _ = print_topic "Mint" in
@@ -66,6 +48,8 @@ let test =
 
     let _ = test_fighter "Should not allow user to realMint a fighter" (alice_address, (RealMint (alice_token1, 0xfb0504030201fb0101010101, [])), 0tez) false in
     
+    let _ = test_fighter "Should not allow admin to realMint a fighter" (admin_address, (RealMint (alice_token1, 0xfb0504030201fb0101010101, [])), 0tez) false in
+    
     let _ = test_fighter "Should not allow admin to realMint a fighter that is not minted" (admin_address, (RealMint (50n, 0xfb0504030201fb0101010101, [])), 0tez) false in
     
     let d : ability_storage = Test.get_storage_of_address ability_addr |> Test.decompile in
@@ -76,7 +60,7 @@ let test =
     let _ = print_checkmark (Big_map.mem 1n d.attributes, false) in
     let _ = print_step ("Fighter 1n is absent from the attributes") in
 
-    let _ = test_fighter "Should allow admin to realMint a fighter" (admin_address, (RealMint (alice_token1, 0xfb0504030201fb0101010101, [1n])), 0tez) true in
+    let _ = test_fighter "Should allow minter to realMint a fighter" (minter_address, (RealMint (alice_token1, 0xfb0504030201fb0101010101, [1n])), 0tez) true in
     
     let event : event_minted list = Test.get_last_events_from fighter_typed_addr "minted" in
     let _ = match (List.head_opt event) with
@@ -84,7 +68,7 @@ let test =
       | None -> print_checkmark (false, true) in
     let _ = print_step "Should catch minted event" in
 
-    let _ = test_fighter "Should not allow admin to realMint agin a fighter" (admin_address, (RealMint (alice_token1, 0xfb0504030201fb0101010101, [])), 0tez) false in
+    let _ = test_fighter "Should not allow minter to realMint again a fighter" (minter_address, (RealMint (alice_token1, 0xfb0504030201fb0101010101, [])), 0tez) false in
 
     let d : ability_storage = Test.get_storage_of_address ability_addr |> Test.decompile in
     let _ = print_checkmark (Set.mem 1n (Big_map.find 1n d.fighter_abilities), true) in
@@ -144,16 +128,18 @@ let test =
     let _ = print_checkmark (d.fusion_fee = 30tez, true) in
     let _ = print_step ("The fusion fee has been updated") in
 
+    // ******************** Create more fighters ******************** //
+
     let _ = Test.set_source alice_address in
     let _ = Test.transfer_to_contract fighter_contract (Mint) 20tez in
     let alice_token2 : fighter_id = 2n in
-    let _ = Test.set_source admin_address in
+    let _ = Test.set_source minter_address in
     let _ = Test.transfer_to_contract fighter_contract (RealMint (alice_token2, 0xfb0504030201fb0101010101, [])) 0tez in
     
     let _ = Test.set_source bob_address in
     let _ = Test.transfer_to_contract fighter_contract (Mint) 20tez in
     let bob_token : fighter_id = 3n in
-    let _ = Test.set_source admin_address in
+    let _ = Test.set_source minter_address in
     let _ = Test.transfer_to_contract fighter_contract (RealMint (bob_token, 0xfb0504032201fb0101010101, [])) 0tez in
 
 
@@ -173,14 +159,14 @@ let test =
     let _ = print_step "Should catch minting event during fusion" in
 
     let _ = test_fighter "Should not allow the user to merge two fighters during a fusion" (alice_address, (Fusion (alice_token1, alice_token2)), 30tez) false in
-
+    
     let d : fighter_storage = Test.get_storage_of_address fighter_addr |> Test.decompile in
     let d1 : fighter_data = Big_map.find alice_token1 d.fighters in
     let d2 : fighter_data = Big_map.find alice_token2 d.fighters in
     let _ = print_checkmark (d1.inactive && d2.inactive, true) in
     let _ = print_step "The father and mother tokens are well inactive" in
 
-    let _ = Test.set_source admin_address in
+    let _ = Test.set_source minter_address in
     let _ = Test.transfer_to_contract fighter_contract (RealMint (alice_token3, 0xfb5554535251fb1111111111, [])) 0tez in
 
     let d : fighter_storage = Test.get_storage_of_address fighter_addr |> Test.decompile in
@@ -205,7 +191,9 @@ let test =
 
     let _ = test_fighter "Should not allow user to use SetFighterListed" (alice_address, (SetFighterListed (alice_token1, false)), 0tez) false in
     
-    let _ = test_fighter "Should allow admin to use SetFighterListed on an active fighter" (admin_address, (SetFighterListed (alice_token3, true)), 0tez) true in
+    let _ = test_fighter "Should not allow admin to use SetFighterListed" (admin_address, (SetFighterListed (alice_token1, false)), 0tez) false in
+    
+    let _ = test_fighter "Should allow manager to use SetFighterListed on an active fighter" (manager_address, (SetFighterListed (alice_token3, true)), 0tez) true in
     
     let _ = test_fighter "Should not allow admin to use SetFighterListed on an inactive fighter." (admin_address, (SetFighterListed (alice_token1, true)), 0tez) false in
     let _ = Test.transfer_to_contract fighter_contract (SetFighterListed (alice_token1, false)) 30tez in
@@ -215,21 +203,25 @@ let test =
     let _ = print_checkmark (d.listed, true) in
     let _ = print_step "The player is listed in the memory" in
 
+    let _ = Test.set_source manager_address in
     let _ = Test.transfer_to_contract fighter_contract (SetFighterListed (alice_token3, false)) 30tez in
 
     // ******************** SetFighterState test ******************** // 
     let _ = print_topic "SetFighterState" in
 
-    let _ = test_fighter "Should not let user use SetFighterState" (alice_address, (SetFighterState (alice_token3,0n,0n,NotQueuing)), 30tez) false in
+    let _ = test_fighter "Should not let user use SetFighterState" (alice_address, (SetFighterState (alice_token3,0n,0n,NotQueuing)), 0tez) false in
+    
+    let _ = test_fighter "Should not let admin use SetFighterState" (admin_address, (SetFighterState (alice_token3,0n,0n,NotQueuing)), 0tez) false in
 
-    let _ = test_fighter "Should let admin use SetFighterState" (admin_address, (SetFighterState (alice_token3,0n,0n,FighterStakeQ)), 30tez) true in
+    let _ = test_fighter "Should let manager use SetFighterState" (manager_address, (SetFighterState (alice_token3,0n,0n,FighterStakeQ)), 0tez) true in
 
     let d : fighter_storage = Test.get_storage_of_address fighter_addr |> Test.decompile in
     let d : fighter_data = Big_map.find alice_token3 d.fighters in
     let _ = print_checkmark (d.queue = FighterStakeQ, true) in
     let _ = print_step "The queue has been correctly updated" in
 
-    let _ = Test.transfer_to_contract fighter_contract (SetFighterState (alice_token3,0n,0n,NotQueuing)) 30tez in
+    let _ = Test.set_source manager_address in
+    let _ = Test.transfer_to_contract fighter_contract (SetFighterState (alice_token3,0n,0n,NotQueuing)) 0tez in
 
 
     // ******************** Transfer test ******************** // 
@@ -252,23 +244,23 @@ let test =
 
     let _ = test_fighter "Should not allow the user to transfer an inactive fighter" (alice_address, (Transfer (alice_token1, bob_address)), 30tez) false in
 
-    let _ = Test.set_source admin_address in
+    let _ = Test.set_source manager_address in
     let _ = Test.transfer_to_contract fighter_contract (SetFighterListed (alice_token3, true)) 0tez in
 
     let _ = test_fighter "Should not allow the user to transfer a listed fighter" (bob_address, (Transfer (alice_token3, bob_address)), 30tez) false in
     
-    let _ = Test.set_source admin_address in
+    let _ = Test.set_source manager_address in
     let _ = Test.transfer_to_contract fighter_contract (SetFighterListed (alice_token3, false)) 0tez in
 
-    let _ = Test.set_source admin_address in
+    let _ = Test.set_source manager_address in
     let _ = Test.transfer_to_contract fighter_contract (SetFighterState (alice_token3, 0n, 0n, FighterStakeQ)) 30tez in
     let _ = test_fighter "Should not allow the user to transfer a fighter in queue" (bob_address, (Transfer (alice_token3, bob_address)), 30tez) false in
     
-    let _ = Test.set_source admin_address in
+    let _ = Test.set_source manager_address in
     let _ = Test.transfer_to_contract fighter_contract (SetFighterState (alice_token3, 0n, 1n, NotQueuing)) 30tez in
     let _ = test_fighter "Should not allow the user to transfer a fighter in tournament" (bob_address, (Transfer (alice_token3, bob_address)), 30tez) false in
 
-    let _ = Test.set_source admin_address in
+    let _ = Test.set_source manager_address in
     let _ = Test.transfer_to_contract fighter_contract (SetFighterState (alice_token3, 1n, 0n, NotQueuing)) 30tez in
     let _ = test_fighter "Should not allow the user to transfer a fighter in fight" (bob_address, (Transfer (alice_token3, bob_address)), 30tez) false in
 

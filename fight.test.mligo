@@ -5,22 +5,15 @@ let test =
 
     let _ = Test.set_source admin_address in
     // fighter_contract
-    let _ = Test.transfer_to_contract fighter_contract (SetFightAddr        fight_addr        ) 0tez in
     let _ = Test.transfer_to_contract fighter_contract (SetAbilityAddr      ability_addr     ) 0tez in
     let _ = Test.transfer_to_contract fighter_contract (SetAttributeAddr    attribute_addr   ) 0tez in
-    let _ = Test.transfer_to_contract fighter_contract (SetMarketfighterAddr marketfighter_addr) 0tez in
-    let _ = Test.transfer_to_contract fighter_contract (SetTournamentAddr   tournament_addr  ) 0tez in
     // marketfighter_contract
     let _ = Test.transfer_to_contract marketfighter_contract (SetFighterAddr fighter_addr) 0tez in
-
     
     // fight_contract
     let _ = print_topic "SetFighterAddr" in
     let _ = test_fight "Should not allow user to use SetFighterAddr entrypoint"  (alice_address, SetFighterAddr fighter_addr, 0tez) false in
     let _ = test_fight "Should allow admin to use SetFighterAddr entrypoint"     (admin_address, SetFighterAddr fighter_addr, 0tez) true in
-    let _ = print_topic "SetTournamentAddr" in
-    let _ = test_fight "Should not allow user to use SetTournamentAddr entrypoint"  (alice_address, SetTournamentAddr tournament_addr, 0tez) false in
-    let _ = test_fight "Should allow admin to use SetTournamentAddr entrypoint"     (admin_address, SetTournamentAddr tournament_addr, 0tez) true in
     let _ = print_topic "SetAttributeAddr" in
     let _ = test_fight "Should not allow user to use SetAttributeAddr entrypoint"  (alice_address, SetAttributeAddr attribute_addr, 0tez) false in
     let _ = test_fight "Should allow admin to use SetAttributeAddr entrypoint"     (admin_address, SetAttributeAddr attribute_addr, 0tez) true in
@@ -43,7 +36,7 @@ let test =
     let _ =  Test.transfer_to_contract fighter_contract (Mint) mint_fee in
     let bob_token : fighter_id = 5n in
 
-    let _ = Test.set_source admin_address in
+    let _ = Test.set_source minter_address in
     let _ = Test.transfer_to_contract fighter_contract (RealMint (token1,0xfb0504030201fb0101010101,[4n;5n;6n])) 0tez in
     let _ = Test.transfer_to_contract fighter_contract (RealMint (token2,0xfb0604030201fb0101010101,[4n;5n;6n])) 0tez in
     let _ = Test.transfer_to_contract fighter_contract (RealMint (token3,0xfb1004030201fb0101010101,[1n;6n;7n])) 0tez in
@@ -129,6 +122,8 @@ let test =
 
     let _ = test_fight "Should not allow the User to CreateFight" (alice_address, (CreateFight (alice_token,bob_token,3n,NoStake,120)), 0tez) false in
 
+    let _ = test_fight "Should not allow the admin to CreateFight" (admin_address, (CreateFight (alice_token,bob_token,3n,NoStake,120)), 0tez) false in
+
     let _ = Test.set_source alice_address in
     let _ = Test.transfer_to_contract fight_contract (AddToQueue (alice_token, NoStakeQ)) 10tez in
 
@@ -143,7 +138,7 @@ let test =
     let _ = Test.set_source bob_address in
     let _ = Test.transfer_to_contract fight_contract (AddToQueue (bob_token, NoStakeQ)) 10tez in
 
-    let _ = test_fight "Should allow the admin to CreateFight" (admin_address, (CreateFight (alice_token,bob_token,3n,NoStake,120)), 0tez) true in
+    let _ = test_fight "Should allow the matcher to CreateFight" (matcher_address, (CreateFight (alice_token,bob_token,3n,NoStake,120)), 0tez) true in
 
     let d : fight_storage = Test.get_storage_of_address fight_addr |> Test.decompile in
     let _ = print_checkmark ((Big_map.mem 1n d.fights), true) in
@@ -180,8 +175,9 @@ let test =
     let _ = print_topic "ResolveRound" in
 
     let _ = test_fight "Should not allow the user to ResolveRound" (alice_address, (ResolveRound (1n, 1n, 1, 0x00)), 0tez) false in
+    let _ = test_fight "Should not allow the admin to ResolveRound" (admin_address, (ResolveRound (1n, 1n, 1, 0x00)), 0tez) false in
     
-    let _ = test_fight "Should allow the admin to ResolveRound 1" (admin_address, (ResolveRound (1n, 1n, 1, 0x00)), 0tez) true in
+    let _ = test_fight "Should allow the resolver to ResolveRound 1" (resolver_address, (ResolveRound (1n, 1n, 1, 0x00)), 0tez) true in
 
     let event : event_round_resolved list = Test.get_last_events_from fight_typed_addr "roundResolved" in
     let _ = match (List.head_opt event) with
@@ -200,9 +196,9 @@ let test =
     let _ = print_checkmark ((d.state = (OnGoing : fight_state)), true) in
     let _ = print_step "The fight state is OnGoing" in
 
-    let _ = test_fight "Should not allow the admin to ResolveRound 3 before round 2" (admin_address, (ResolveRound (1n, 3n, 1, 0x00)), 0tez) false in
+    let _ = test_fight "Should not allow the resolver to ResolveRound 3 before round 2" (resolver_address, (ResolveRound (1n, 3n, 1, 0x00)), 0tez) false in
     
-    let _ = test_fight "Should allow the admin to ResolveRound 2" (admin_address, (ResolveRound (1n, 2n, 1, 0x00)), 0tez) true in
+    let _ = test_fight "Should allow the resolver to ResolveRound 2" (resolver_address, (ResolveRound (1n, 2n, 1, 0x00)), 0tez) true in
     
     let event : event_round_resolved list = Test.get_last_events_from fight_typed_addr "roundResolved" in
     let _ = match (List.head_opt event) with
@@ -216,7 +212,7 @@ let test =
       | None -> print_checkmark (false, true) in
     let _ = print_step "Should catch newRound event for round 3" in
 
-    let _ = test_fight "Should allow the admin to ResolveRound 3" (admin_address, (ResolveRound (1n, 3n, 1, 0x00)), 0tez) true in
+    let _ = test_fight "Should allow the resolver to ResolveRound 3" (resolver_address, (ResolveRound (1n, 3n, 1, 0x00)), 0tez) true in
     
     let event : event_round_resolved list = Test.get_last_events_from fight_typed_addr "roundResolved" in
     let _ = match (List.head_opt event) with

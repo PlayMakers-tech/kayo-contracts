@@ -3,16 +3,16 @@
 #include "utils.mligo"
 
 //************* Declaration of variables *************//
-let _ = Test.reset_state 10n []
+let _ = Test.reset_state 8n []
 
-let admin_address     : address = Test.nth_bootstrap_account 1
-let alice_address     : address = Test.nth_bootstrap_account 2
-let bob_address       : address = Test.nth_bootstrap_account 3
-let manager_address   : address = Test.nth_bootstrap_account 4
-let minter_address    : address = Test.nth_bootstrap_account 5
-let matcher_address   : address = Test.nth_bootstrap_account 6
-let resolver_address  : address = Test.nth_bootstrap_account 7
-let scheduler_address : address = Test.nth_bootstrap_account 8
+let admin_address     : address = Test.nth_bootstrap_account 0
+let alice_address     : address = Test.nth_bootstrap_account 1
+let bob_address       : address = Test.nth_bootstrap_account 2
+let manager_address   : address = Test.nth_bootstrap_account 3
+let minter_address    : address = Test.nth_bootstrap_account 4
+let matcher_address   : address = Test.nth_bootstrap_account 5
+let resolver_address  : address = Test.nth_bootstrap_account 6
+let scheduler_address : address = Test.nth_bootstrap_account 7
 
 let dummy_address = ("tz3QE72w1vC613ZaeAZwW5fxwrBUQAstyaZy" : address)
 
@@ -214,14 +214,13 @@ let test_shop (name : string) (addr, op, amount : address * shop_parameter * tez
   test_entrypoint name (Test.transfer_to_contract shop_contract op amount) expected
 
 // Set missing rights
-(*
 let _ = Test.set_source admin_address
 let _ = Test.transfer_to_contract fighter_contract (SetAbilityAddr    ability_addr  ) 0tez
 let _ = Test.transfer_to_contract fighter_contract (SetAttributeAddr  attribute_addr) 0tez
 let _ = Test.transfer_to_contract fight_contract   (SetAttributeAddr  attribute_addr) 0tez
 let _ = Test.transfer_to_contract fighter_contract (SetManagers (Set.literal [manager_address;fight_addr;tournament_addr;marketfighter_addr])) 0tez
 let _ = Test.transfer_to_contract fight_contract   (SetManagers (Set.literal [manager_address;tournament_addr])) 0tez
-*)
+
 
 // Create abilities
 let rl : rarity list =

@@ -15,9 +15,11 @@ let test =
 
     let _ = test_shop "Should not allow user to create item" (alice_address, (NewItem ticket1), 0tez) false in
     
-    let _ = test_shop "Should allow admin to create item" (admin_address, (NewItem ticket1), 0tez) true in
+    let _ = test_shop "Should not allow admin to create item" (admin_address, (NewItem ticket1), 0tez) false in
     
-    let _ = test_shop "Should not allow admin to override item" (admin_address, (NewItem ticket1), 0tez) false in
+    let _ = test_shop "Should allow manager to create item" (manager_address, (NewItem ticket1), 0tez) true in
+    
+    let _ = test_shop "Should not allow manager to override item" (manager_address, (NewItem ticket1), 0tez) false in
     
 
     let ticket2 : shop_item_data = {
@@ -27,7 +29,7 @@ let test =
         consumers = Set.empty
     } in
     
-    let _ = test_shop "Should allow admin to create a second item" (admin_address, (NewItem ticket2), 0tez) true in
+    let _ = test_shop "Should allow manager to create a second item" (manager_address, (NewItem ticket2), 0tez) true in
 
     // *********** Create bundles ***********
     let _ = print_topic "Create bundles" in
@@ -41,9 +43,11 @@ let test =
 
     let _ = test_shop "Should not allow user to create bundle" (alice_address, (NewBundle bundle1), 0tez) false in
     
-    let _ = test_shop "Should allow admin to create bundle" (admin_address, (NewBundle bundle1), 0tez) true in
+    let _ = test_shop "Should not allow admin to create bundle" (admin_address, (NewBundle bundle1), 0tez) false in
     
-    let _ = test_shop "Should not allow admin to override bundle" (admin_address, (NewBundle bundle1), 0tez) false in
+    let _ = test_shop "Should allow manager to create bundle" (manager_address, (NewBundle bundle1), 0tez) true in
+    
+    let _ = test_shop "Should not allow manager to override bundle" (manager_address, (NewBundle bundle1), 0tez) false in
 
     // *********** SetShopOpen *********** //
     let _ = print_topic "SetShopOpen" in
@@ -96,7 +100,9 @@ let test =
 
     let _ = test_shop "Should not allow user to set item price" (alice_address, (SetItemPrice ("ticket1",1tez)), 0tez) false in
     
-    let _ = test_shop "Should allow admin to set item price" (admin_address, (SetItemPrice ("ticket1",10tez)), 0tez) true in
+    let _ = test_shop "Should not allow admin to set item price" (admin_address, (SetItemPrice ("ticket1",1tez)), 0tez) false in
+    
+    let _ = test_shop "Should allow manager to set item price" (manager_address, (SetItemPrice ("ticket1",10tez)), 0tez) true in
 
     let d : shop_storage = Test.get_storage shop_typed_addr in
     let d : shop_item_data = Map.find "ticket1" d.items in
@@ -138,7 +144,9 @@ let test =
 
     let _ = test_shop "Should not allow user to set item consumers" (alice_address, (SetItemConsumers ("ticket1",Set.literal [alice_address])), 0tez) false in
     
-    let _ = test_shop "Should allow admin to set item consumers" (admin_address, (SetItemConsumers ("ticket1",Set.literal [alice_address; bob_address])), 0tez) true in
+    let _ = test_shop "Should not allow admin to set item consumers" (admin_address, (SetItemConsumers ("ticket1",Set.literal [alice_address])), 0tez) false in
+    
+    let _ = test_shop "Should allow manager to set item consumers" (manager_address, (SetItemConsumers ("ticket1",Set.literal [alice_address; bob_address])), 0tez) true in
 
     let d : shop_storage = Test.get_storage shop_typed_addr in
     let d : shop_item_data = Map.find "ticket1" d.items in
@@ -150,7 +158,9 @@ let test =
 
     let _ = test_shop "Should not allow user to set bundle price" (alice_address, (SetBundlePrice ("bundle1",1tez)), 0tez) false in
     
-    let _ = test_shop "Should allow admin to set bundle price" (admin_address, (SetBundlePrice ("bundle1",10tez)), 0tez) true in
+    let _ = test_shop "Should not allow admin to set bundle price" (admin_address, (SetBundlePrice ("bundle1",1tez)), 0tez) false in
+    
+    let _ = test_shop "Should allow manager to set bundle price" (manager_address, (SetBundlePrice ("bundle1",10tez)), 0tez) true in
 
     let d : shop_storage = Test.get_storage shop_typed_addr in
     let d : shop_bundle_data = Map.find "bundle1" d.bundles in
@@ -161,8 +171,10 @@ let test =
     let _ = print_topic "DeleteBundle" in
 
     let _ = test_shop "Should not allow user to delete bundle" (alice_address, (DeleteBundle "bundle1"), 0tez) false in
+    
+    let _ = test_shop "Should not allow admin to delete bundle" (admin_address, (DeleteBundle "bundle1"), 0tez) false in
 
-    let _ = test_shop "Should allow admin to delete bundle" (admin_address, (DeleteBundle "bundle1"), 0tez) true in
+    let _ = test_shop "Should allow manager to delete bundle" (manager_address, (DeleteBundle "bundle1"), 0tez) true in
 
     let d : shop_storage = Test.get_storage shop_typed_addr in
     let _ = print_checkmark (Map.mem "bundle1" d.bundles, false) in
@@ -172,8 +184,10 @@ let test =
     let _ = print_topic "GrantItem" in
 
     let _ = test_shop "Should not allow user to grant item" (alice_address, (GrantItem ("ticket1",1n,bob_address)), 10tez) false in
+    
+    let _ = test_shop "Should not allow admin to grant item" (admin_address, (GrantItem ("ticket1",1n,bob_address)), 10tez) false in
 
-    let _ = test_shop "Should allow admin to grant item" (admin_address, (GrantItem ("ticket1",10n,bob_address)), 100tez) true in
+    let _ = test_shop "Should allow manager to grant item" (manager_address, (GrantItem ("ticket1",10n,bob_address)), 100tez) true in
     
     let _ = test_shop "Should not allow admin to grant item with the incorrect price of the bundle" (admin_address, (GrantItem ("ticket1",10n,bob_address)), 10tez) false in
 

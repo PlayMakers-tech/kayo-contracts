@@ -3,13 +3,9 @@
 
 let test =
 
-    let _ = Test.transfer_to_contract fighter_contract (SetFightAddr        fight_addr        ) 0tez in
     let _ = Test.transfer_to_contract fighter_contract (SetAbilityAddr      ability_addr     ) 0tez in
     let _ = Test.transfer_to_contract fighter_contract (SetAttributeAddr    attribute_addr   ) 0tez in
-    let _ = Test.transfer_to_contract fighter_contract (SetMarketfighterAddr marketfighter_addr) 0tez in
-    let _ = Test.transfer_to_contract fighter_contract (SetTournamentAddr   tournament_addr  ) 0tez in
     let _ = Test.transfer_to_contract fight_contract   (SetAttributeAddr    attribute_addr   ) 0tez in
-    let _ = Test.transfer_to_contract fight_contract   (SetTournamentAddr   tournament_addr  ) 0tez in
 
     let _ = print_topic ("SetFighterAddr") in
     let _ = test_marketfighter "Should not allow user to use SetFighterAddr entrypoint"  (alice_address, SetFighterAddr fighter_addr, 0tez) false in
@@ -29,7 +25,7 @@ let test =
     let _ =  Test.transfer_to_contract fighter_contract (Mint) mint_fee in
     let token4 : fighter_id = 4n in
 
-    let _ = Test.set_source admin_address in
+    let _ = Test.set_source minter_address in
     let _ = Test.transfer_to_contract fighter_contract (RealMint (token1,0xfb0504030201fb0101010101,[4n;5n;6n])) 0tez in
     let _ = Test.transfer_to_contract fighter_contract (RealMint (token2,0xfb0604030201fb0101010101,[4n;5n;6n])) 0tez in
     let _ = Test.transfer_to_contract fighter_contract (RealMint (token3,0xfb1004030201fb0101010101,[1n;6n;7n])) 0tez in
@@ -105,7 +101,7 @@ let test =
     let _ = print_checkmark (e.price=12tez, true) in
     let _ = print_step "Sell offer is stored in memory" in
 
-    let _ = Test.set_source admin_address in
+    let _ = Test.set_source manager_address in
     let _ = Test.transfer_to_contract fighter_contract (SetFighterState (token1, 0n, 0n, FighterStakeQ)) 30tez in
     let _ = test_marketfighter "Should not allow user to sell a fighter in queue" (alice_address, Sell (token1, 10tez), listing_fee) false in
     
@@ -218,8 +214,10 @@ let test =
     let _ = print_topic "SetListingFee" in
 
     let _ = test_marketfighter "Should not allow user to use SetListingFee" (alice_address,  SetListingFee 20tez, 0tez) false in
+    
+    let _ = test_marketfighter "Should not allow admin to use SetListingFee" (admin_address,  SetListingFee 20tez, 0tez) false in
 
-    let _ = test_marketfighter "Should allow admin to use SetListingFee" (admin_address,  SetListingFee 20tez, 0tez) true in
+    let _ = test_marketfighter "Should allow manager to use SetListingFee" (manager_address,  SetListingFee 20tez, 0tez) true in
 
     let d : marketfighter_storage = Test.get_storage_of_address marketfighter_addr |> Test.decompile in
     let _ = print_checkmark (d.listing_fee = 20tez, true) in
@@ -229,8 +227,10 @@ let test =
     let _ = print_topic "SetMinPrice" in
 
     let _ = test_marketfighter "Should not allow user to use SetMinPrice" (alice_address,  SetMinPrice 20tez, 0tez) false in
+    
+    let _ = test_marketfighter "Should not allow admin to use SetMinPrice" (admin_address,  SetMinPrice 20tez, 0tez) false in
 
-    let _ = test_marketfighter "Should allow admin to use SetMinPrice" (admin_address,  SetMinPrice 20tez, 0tez) true in
+    let _ = test_marketfighter "Should allow manager to use SetMinPrice" (manager_address,  SetMinPrice 20tez, 0tez) true in
 
     let d : marketfighter_storage = Test.get_storage_of_address marketfighter_addr |> Test.decompile in
     let _ = print_checkmark (d.min_price = 20tez, true) in
