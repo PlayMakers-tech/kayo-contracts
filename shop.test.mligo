@@ -1,34 +1,7 @@
-#include "schema.mligo"
-#include "error.mligo"
-#include "utils.mligo"
 #include "test.utils.mligo"
 #include "event.mligo"
 
 let test =
-    let _ = Test.reset_state 4n [] in
-    let admin_address = Test.nth_bootstrap_account 1 in
-    let alice_address = Test.nth_bootstrap_account 2 in
-    let bob_address   = Test.nth_bootstrap_account 3 in
-    // let dummy_address = ("tz3QE72w1vC613ZaeAZwW5fxwrBUQAstyaZy": address) in
-    let _ = Test.set_source admin_address in
-
-    // Shop contract
-    let init_store : shop_storage = {
-        is_open = true;
-        admin = (admin_address: address);
-        items = Map.empty;
-        bundles = Map.empty;
-        owned_items = Big_map.empty        
-    } in
-    let shop_addr, _, _ = Test.originate_from_file "shop.mligo" "main" [] (Test.eval init_store) 0tez in
-    let shop_typed_addr: (shop_parameter, shop_storage) typed_address = Test.cast_address shop_addr in
-    let shop_contract = Test.to_contract shop_typed_addr in
-
-
-    let test_shop (name : string) (addr, op, amount : address * shop_parameter * tez) (expected : bool) =
-        let _ = Test.set_source addr in
-        test_entrypoint name (Test.transfer_to_contract shop_contract op amount) expected
-    in
 
     // *********** Create items ***********
     let _ = print_topic "Create items" in
