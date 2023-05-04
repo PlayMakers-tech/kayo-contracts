@@ -2,13 +2,34 @@
 #include "error.mligo"
 #include "event.mligo"
 
-let _admin_only (d: shop_storage) =
-    if Tezos.get_sender () <> d.admin then failwith ERROR.rights_admin
 let _get_item_data (a, d: shop_item * shop_storage) =
     (Option.unopt_with_error (Map.find_opt a d.items) ERROR.shop_item : shop_item_data)
 let _get_bundle_data (a, d: shop_bundle * shop_storage) =
     (Option.unopt_with_error (Map.find_opt a d.bundles) ERROR.shop_bundle : shop_bundle_data)
 
+
+(** Private function to check that the caller is admin *)
+let _admin_only (d: shop_storage) =
+    if not (Set.mem (Tezos.get_sender ()) d.admins) then failwith ERROR.rights_admin
+
+(** Private function to check that the caller is manager *)
+let _manager_only (d: shop_storage) =
+    if not (Set.mem (Tezos.get_sender ()) d.managers) then failwith ERROR.rights_manager
+
+
+(** Set the address set of admins
+    @caller admin
+*)
+let set_admins (addrs, d : address set * shop_storage) =
+    let _ = _admin_only d in
+    [], {d with admins = addrs}
+
+(** Set the address set of managers
+    @caller admin
+*)
+let set_managers (addrs, d : address set * shop_storage) =
+    let _ = _admin_only d in
+    [], {d with managers = addrs}
 
 let set_shop_open (v, d : bool * shop_storage) =
     let _ = _admin_only d in
@@ -20,40 +41,40 @@ let sink_fees (addr, d: address * shop_storage) =
     [Tezos.transaction unit (Tezos.get_balance ()) (Tezos.get_contract addr)], d
 
 let new_item (data, d: shop_item_data * shop_storage) = 
-    let _ = _admin_only d in
+    let _ = _manager_only d in
     let _ = if Map.mem data.item d.items then failwith ERROR.name_taken in
     [], { d with
         items = Map.add data.item data d.items
     }
 let new_bundle (data, d: shop_bundle_data * shop_storage) = 
-    let _ = _admin_only d in
+    let _ = _manager_only d in
     let _ = if Map.mem data.bundle d.bundles then failwith ERROR.name_taken in
     [], { d with
         bundles = Map.add data.bundle data d.bundles
     }
 let set_item_consumers (item, consumers, d: shop_item * (address set) * shop_storage) =
-    let _ = _admin_only d in
+    let _ = _manager_only d in
     let data = _get_item_data (item,d) in
     let data = { data  with consumers = consumers } in 
     [], { d with
         items = Map.update item (Some data) d.items
     }
 let set_item_price (item, price, d: shop_item * tez * shop_storage) =
-    let _ = _admin_only d in
+    let _ = _manager_only d in
     let data = _get_item_data (item,d) in
     let data = { data with price = price } in 
     [], { d with
         items = Map.update item (Some data) d.items
     }
 let set_bundle_price (bundle, price, d: shop_bundle * tez * shop_storage) =
-    let _ = _admin_only d in
+    let _ = _manager_only d in
     let data = _get_bundle_data (bundle,d) in
     let data = { data with price = price } in 
     [], { d with
         bundles = Map.update bundle (Some data) d.bundles
     }
 let delete_bundle (bundle, d: shop_bundle * shop_storage) = 
-    let _ = _admin_only d in
+    let _ = _manager_only d in
     [], { d with
         bundles = Map.remove bundle d.bundles
     }
@@ -80,7 +101,7 @@ let _increment_item (item, qty, addr, d: shop_item * nat * address * shop_storag
 
 let grant_item (item,qty,addr,d: shop_item * nat * address * shop_storage) =
     let _ = if d.is_open = false then failwith ERROR.shop_closed in
-    let _ = _admin_only d in
+    let _ = _manager_only d in
     let data = _get_item_data (item,d) in
     let _ = if Tezos.get_amount () <> (data.price * qty) then failwith ERROR.price in
     let _ = if data.quantity < qty then failwith ERROR.item_no_stock in
@@ -116,6 +137,8 @@ let buy_bundle (bundle, qty, d: shop_bundle * nat * shop_storage) =
 
 let main (action, d: shop_parameter * shop_storage) = 
     ( match action with
+    | SetAdmins addrs -> set_admins(addrs,d)
+    | SetManagers addrs -> set_managers(addrs,d)
     | SetShopOpen value -> set_shop_open(value,d)
     | NewItem data -> new_item(data,d)
     | SetItemPrice (item,value) -> set_item_price(item,value,d)

@@ -9,10 +9,11 @@ type marketfighter_data = {
 }
 
 type marketfighter_storage = {
+    admins: address set;
+    managers: address set;
     is_open: bool;
     listing_fee: tez;
     fighter_addr: address;
-    admin: address;
     min_price: tez;
     listed_sale: fighter_id set;
     listed_offer: fighter_id set;
@@ -21,6 +22,8 @@ type marketfighter_storage = {
 }
 
 type marketfighter_parameter =
+| SetAdmins of address set
+| SetManagers of address set
 | SetMarketOpen of bool
 | SetListingFee of tez
 | SetMinPrice of tez

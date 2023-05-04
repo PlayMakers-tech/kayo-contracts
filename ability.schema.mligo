@@ -20,9 +20,9 @@ type ability_data = {
 #include "fighter.schema.mligo"
 
 type ability_storage = {
+    admins: address set;
+    managers: address set;
     next_id: ability_id;
-    fighter_addr: address;
-    admin: address;
     available_abilities: (rarity, ability_id set) big_map;
     fighter_abilities: (fighter_id, ability_id set) big_map;
     abilities: (ability_id, ability_data) big_map;
@@ -30,7 +30,8 @@ type ability_storage = {
 }
 
 type ability_parameter =
-| SetFighterAddr of address
+| SetAdmins of address set
+| SetManagers of address set
 | SetProbaRarity of rarity * nat
 | CreateAbility of rarity list
 | Mint of fighter_id * (ability_id list)

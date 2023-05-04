@@ -1,8 +1,8 @@
 #include "ability.mligo"
 let init_store: ability_storage = {
+    admins = Set.empty; // This needs to be the deployer
+    managers = Set.empty; // This needs to have Fighter
     next_id = 1n;
-    fighter_addr = ("tz3QE72w1vC613ZaeAZwW5fxwrBUQAstyaZy": address);
-    admin = ("tz3QE72w1vC613ZaeAZwW5fxwrBUQAstyaZy": address);
     available_abilities = Big_map.literal [
         (Common,    (Set.empty: ability_id set));
         (Uncommon,  (Set.empty: ability_id set));

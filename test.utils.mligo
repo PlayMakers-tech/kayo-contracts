@@ -3,25 +3,24 @@
 #include "utils.mligo"
 
 //************* Declaration of variables *************//
-let _ = Test.reset_state 4n []
+let _ = Test.reset_state 10n []
 
-let admin_address = Test.nth_bootstrap_account 1
-
-let alice_address = Test.nth_bootstrap_account 2
-
-let bob_address = Test.nth_bootstrap_account 3
+let admin_address     : address = Test.nth_bootstrap_account 1
+let alice_address     : address = Test.nth_bootstrap_account 2
+let bob_address       : address = Test.nth_bootstrap_account 3
+let manager_address   : address = Test.nth_bootstrap_account 4
+let minter_address    : address = Test.nth_bootstrap_account 5
+let matcher_address   : address = Test.nth_bootstrap_account 6
+let resolver_address  : address = Test.nth_bootstrap_account 7
+let scheduler_address : address = Test.nth_bootstrap_account 8
 
 let dummy_address = ("tz3QE72w1vC613ZaeAZwW5fxwrBUQAstyaZy" : address)
 
-let mint_fee = 10tez
-
-let fight_fee = 0.5tez
-
+let mint_fee       = 10tez
+let fight_fee      = 0.5tez
 let tournament_fee = 0.7tez
-
-let fusion_fee = 20tez
-
-let listing_fee = 0.1tez
+let fusion_fee     = 20tez
+let listing_fee    = 0.1tez
 
 let min_listing_price = 8tez
 
@@ -63,15 +62,14 @@ let _ = Test.set_source admin_address
 
 // Fighter contract
 let init_store_fighter : fighter_storage = {
+    admins = Set.literal [admin_address];
+    managers = Set.literal [manager_address];
+    minters = Set.literal [minter_address];
     next_id = 1n;
     mint_fee = mint_fee;
     fusion_fee = fusion_fee;
-    fight_addr = dummy_address;
-    tournament_addr = dummy_address;
     attribute_addr = dummy_address;
     ability_addr = dummy_address;
-    marketfighter_addr = dummy_address;
-    admin = (admin_address : address);
     mints = Set.empty;
     fighters = Big_map.empty;
     fighters_by_owner = Big_map.empty
@@ -86,12 +84,14 @@ let test_fighter (name : string) (addr, op, amount : address * fighter_parameter
 
 // Fight contract
 let init_store_fight : fight_storage = {
+    admins = Set.literal [admin_address];
+    managers = Set.literal [manager_address];
+    matchers = Set.literal [matcher_address];
+    resolvers = Set.literal [resolver_address];
     next_id = 1n;
     fight_fee = fight_fee;
     fighter_addr = (fighter_addr: address);
-    tournament_addr = dummy_address;
     attribute_addr = dummy_address;
-    admin = (admin_address: address);
     fights = Big_map.empty;
     fights_by_fighter = Big_map.empty;
     queues = Big_map.empty
@@ -107,11 +107,13 @@ let test_fight (name : string) (addr, op, amount : address * fight_parameter * t
 
 // Tournament contract
 let init_store_tournament : tournament_storage = {
+    admins = Set.literal [admin_address];
+    managers = Set.literal [manager_address];
+    schedulers = Set.literal [scheduler_address];
     next_id = 1n;
     tournament_fee = tournament_fee;
     fight_addr = (fight_addr: address);
     fighter_addr = (fighter_addr: address);
-    admin = (admin_address: address);
     active_tournaments = Set.empty;
     tournaments = Big_map.empty;
 }
@@ -126,9 +128,9 @@ let test_tournament (name : string) (addr, op, amount : address * tournament_par
 
 // Ability contract
 let init_store_ability: ability_storage = {
+    admins = Set.literal [admin_address];
+    managers = Set.literal [manager_address;(fighter_addr: address)];
     next_id = 1n;
-    fighter_addr = (fighter_addr: address);
-      admin = (admin_address : address);
     available_abilities = Big_map.literal [
         (Common,    (Set.empty: ability_id set));
         (Uncommon,  (Set.empty: ability_id set));
@@ -158,9 +160,8 @@ let test_ability (name : string) (addr, op, amount : address * ability_parameter
 
 // Attribute contract
 let init_store_attribute: attribute_storage = {
-    fight_addr = (fight_addr: address);
-    fighter_addr = (fighter_addr: address);
-    admin = (admin_address : address);
+    admins = Set.literal [admin_address];
+    managers = Set.literal [manager_address;(fighter_addr: address);(fight_addr: address);(tournament_addr: address)];
     skin_nodes = (1n, [(0x10,1n,1n)]);
     skin_leaves = (1n, [(0x00,2n,1n)]);
     attributes = Big_map.empty
@@ -175,10 +176,11 @@ let test_attribute (name : string) (addr, op, amount : address * attribute_param
 
 // Marketfighter contract
 let init_store_marketfighter: marketfighter_storage = {
+    admins = Set.literal [admin_address];
+    managers = Set.literal [manager_address];
     is_open = true;
     listing_fee = listing_fee;
     fighter_addr = (fighter_addr: address);
-    admin = (admin_address: address);
     min_price = min_listing_price;
     listed_offer = Set.empty;
     listed_sale = Set.empty;
@@ -195,8 +197,9 @@ let test_marketfighter (name : string) (addr, op, amount : address * marketfight
 
 // Shop contract
 let init_store_shop : shop_storage = {
+    admins = Set.literal [admin_address];
+    managers = Set.literal [manager_address];
     is_open = true;
-    admin = (admin_address: address);
     items = Map.empty;
     bundles = Map.empty;
     owned_items = Big_map.empty        
@@ -210,12 +213,23 @@ let test_shop (name : string) (addr, op, amount : address * shop_parameter * tez
   let _ = Test.set_source addr in
   test_entrypoint name (Test.transfer_to_contract shop_contract op amount) expected
 
+// Set missing rights
+(*
+let _ = Test.set_source admin_address
+let _ = Test.transfer_to_contract fighter_contract (SetAbilityAddr    ability_addr  ) 0tez
+let _ = Test.transfer_to_contract fighter_contract (SetAttributeAddr  attribute_addr) 0tez
+let _ = Test.transfer_to_contract fight_contract   (SetAttributeAddr  attribute_addr) 0tez
+let _ = Test.transfer_to_contract fighter_contract (SetManagers (Set.literal [manager_address;fight_addr;tournament_addr;marketfighter_addr])) 0tez
+let _ = Test.transfer_to_contract fight_contract   (SetManagers (Set.literal [manager_address;tournament_addr])) 0tez
+*)
+
 // Create abilities
 let rl : rarity list =
   [Common;Common;Common;Common;Common;Common;Common;Common;Common;Common;
   Rare;Rare;Rare;Rare;Rare;
   Epic;Epic;Epic;
   Unique]
+let _ = Test.set_source manager_address
 let _ = 
     (match Test.transfer_to_contract ability_contract (CreateAbility rl) 0tez with
     | Success _ -> true

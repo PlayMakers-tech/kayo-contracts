@@ -20,14 +20,17 @@ type shop_bundle_data = {
 }
 
 type shop_storage = {
+    admins: address set;
+    managers: address set;
     is_open: bool;
     items: (shop_item, shop_item_data) map;
     bundles: (shop_bundle, shop_bundle_data) map;
-    owned_items: (address, (shop_item, nat) map) big_map;
-    admin: address
+    owned_items: (address, (shop_item, nat) map) big_map
 }
 
 type shop_parameter =
+| SetAdmins of address set
+| SetManagers of address set
 | SetShopOpen of bool
 | NewItem of shop_item_data
 | SetItemPrice of shop_item * tez

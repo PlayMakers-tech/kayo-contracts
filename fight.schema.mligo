@@ -44,21 +44,26 @@ type fight_data = {
 }
 
 type fight_storage = {
+    admins: address set;
+    managers: address set;
+    matchers: address set;
+    resolvers: address set;
     next_id: fight_id;
     fight_fee: tez;
     fighter_addr: address;
-    tournament_addr: address;
     attribute_addr: address;
-    admin: address;
     fights: (fight_id, fight_data) big_map;
     fights_by_fighter: (fighter_id, fight_id set) big_map;
     queues: (fight_queue, fighter_id set) big_map
 }
 
 type fight_parameter =
+| SetAdmins of address set
+| SetManagers of address set
+| SetMatchers of address set
+| SetResolvers of address set
 | SetFightFee of tez
 | SetFighterAddr of address
-| SetTournamentAddr of address
 | SetAttributeAddr of address
 | CreateFight of fighter_id * fighter_id * round_amount * fight_stake * round_duration
 | ResolveRound of fight_id * nat * int * round_data

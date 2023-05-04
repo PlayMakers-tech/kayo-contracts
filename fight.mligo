@@ -17,9 +17,22 @@
 #include "error.mligo"
 #include "event.mligo"
 
+
 (** Private function to check that the caller is admin *)
 let _admin_only (d: fight_storage) =
-    if Tezos.get_sender () <> d.admin then failwith ERROR.rights_admin
+    if not (Set.mem (Tezos.get_sender ()) d.admins) then failwith ERROR.rights_admin
+
+(** Private function to check that the caller is manager *)
+let _manager_only (d: fight_storage) =
+    if not (Set.mem (Tezos.get_sender ()) d.managers) then failwith ERROR.rights_manager
+
+(** Private function to check that the caller is matcher *)
+let _matcher_only (d: fight_storage) =
+    if not (Set.mem (Tezos.get_sender ()) d.matchers) then failwith ERROR.rights_matcher
+
+(** Private function to check that the caller is resolver *)
+let _resolver_only (d: fight_storage) =
+    if not (Set.mem (Tezos.get_sender ()) d.resolvers) then failwith ERROR.rights_resolver
 
 (** Private function to get fighter data out of its id from Fighter contract *)
 let _get_fighter_data (a,d: fighter_id * fight_storage) =
@@ -84,6 +97,35 @@ let _resolve_fight (id, event, d: fight_id * operation * fight_storage) =
     let d = { d with fights = Big_map.update id (Some f) d.fights } in
     event::op, d
 
+(** Set the address set of admins
+    @caller admin
+*)
+let set_admins (addrs, d : address set * fight_storage) =
+    let _ = _admin_only d in
+    [], {d with admins = addrs}
+
+(** Set the address set of managers
+    Note that we expect to have Smart contracts in there too
+    @caller admin
+*)
+let set_managers (addrs, d : address set * fight_storage) =
+    let _ = _admin_only d in
+    [], {d with managers = addrs}
+
+(** Set the address set of matchers
+    @caller manager
+*)
+let set_matchers (addrs, d : address set * fight_storage) =
+    let _ = _manager_only d in
+    [], {d with matchers = addrs}
+
+(** Set the address set of resolver
+    @caller admin
+*)
+let set_resolvers (addrs, d : address set * fight_storage) =
+    let _ = _manager_only d in
+    [], {d with resolvers = addrs}
+
 (** Set the fight fee to be paid by the user for a Mint
     @caller admin
 *)
@@ -97,13 +139,6 @@ let set_fight_fee (v, d : tez * fight_storage) =
 let set_fighter_addr (addr, d : address * fight_storage) =
     let _ = _admin_only d in
     [], {d with fighter_addr = addr}
-
-(** Set the address of the Tournament smart contract
-    @caller admin
-*)
-let set_tournament_addr (addr, d : address * fight_storage) =
-    let _ = _admin_only d in
-    [], {d with tournament_addr = addr}
 
 (** Set the address of the Attribute smart contract
     @caller admin
@@ -147,8 +182,7 @@ let new_fight (id, a, b, round_cnt, stake, round_duration:
 *)
 let create_fight (a, b, round_cnt, stake, round_duration, d: 
 		fighter_id * fighter_id * round_amount * fight_stake * round_duration * fight_storage) =
-    let _ = if not (Set.mem (Tezos.get_sender ()) (Set.literal [d.admin;d.tournament_addr]))
-    then failwith ERROR.rights_other in
+    let _ = _matcher_only d in
     let fa = _get_fighter_data (a,d) in
     let _ = if (fa.listed || fa.fight>0n) then failwith ERROR.unavailable_fighter "a" in
     let fb = _get_fighter_data (b,d) in
@@ -178,7 +212,7 @@ let create_fight (a, b, round_cnt, stake, round_duration, d:
     @event newRound (fight_id, fighter_id, fighter_id, round, deadline)
 *)
 let resolve_round (id, round, result, data, d: fight_id * nat * int * round_data * fight_storage) =
-    let _ = _admin_only d in
+    let _ = _resolver_only d in
 	let f = _get_fight_data (id,d) in
     let _ = if round <> (List.size f.rounds) +1n then failwith ERROR.invalid_round in
     let _ = if round > f.round_cnt then failwith ERROR.invalid_round in
@@ -251,9 +285,12 @@ let cancel_queue (a, d: fighter_id * fight_storage) =
 (** Main function of the smart contract *)
 let main (action, d: fight_parameter * fight_storage) = 
     ( match action with
+    | SetAdmins addrs -> set_admins(addrs,d)
+    | SetManagers addrs -> set_managers(addrs,d)
+    | SetMatchers addrs -> set_matchers(addrs,d)
+    | SetResolvers addrs -> set_resolvers(addrs,d)
     | SetFightFee value -> set_fight_fee(value,d)
     | SetFighterAddr addr -> set_fighter_addr(addr,d)
-    | SetTournamentAddr addr -> set_tournament_addr(addr,d)
     | SetAttributeAddr addr -> set_attribute_addr(addr,d)
     | CreateFight (a,b,round_cnt,stake,round_duration) -> create_fight(a,b,round_cnt,stake,round_duration,d)
     | ResolveRound (id,round,result,data) -> resolve_round(id,round,result,data,d)
@@ -269,9 +306,4 @@ let main (action, d: fight_parameter * fight_storage) =
 [@view] let get_fighters_in_queue = _get_fighters_in_queue
 [@view] let get_fees (_,d: unit * fight_storage) = {
     fight = d.fight_fee
-}
-[@view] let get_addr (_,d: unit * fight_storage) = {
-    fighter = d.fighter_addr;
-    tournament = d.tournament_addr;
-    attribute = d.attribute_addr
 }

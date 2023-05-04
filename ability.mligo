@@ -17,7 +17,11 @@
 
 (** Private function to check that the caller is admin *)
 let _admin_only (d: ability_storage) =
-    if Tezos.get_sender () <> d.admin then failwith ERROR.rights_admin
+    if not (Set.mem (Tezos.get_sender ()) d.admins) then failwith ERROR.rights_admin
+
+(** Private function to check that the caller is manager *)
+let _manager_only (d: ability_storage) =
+    if not (Set.mem (Tezos.get_sender ()) d.managers) then failwith ERROR.rights_manager
 
 (** Private function to get ability data out of a its id *)
 let _get_ability_data (id, d: ability_id * ability_storage) =
@@ -36,12 +40,23 @@ let _get_proba_rarity (r, d: rarity * ability_storage) =
     Option.unopt_with_error (Map.find_opt r d.proba_rarity) ERROR.rarity
 
 
-let set_fighter_addr (addr, d : address * ability_storage) =
+(** Set the address set of admins
+    @caller admin
+*)
+let set_admins (addrs, d : address set * ability_storage) =
     let _ = _admin_only d in
-    [], {d with fighter_addr = addr}
+    [], {d with admins = addrs}
+
+(** Set the address set of managers
+    Note that we expect to have Smart contracts in there too
+    @caller admin
+*)
+let set_managers (addrs, d : address set * ability_storage) =
+    let _ = _admin_only d in
+    [], {d with managers = addrs}
 
 let set_proba_rarity (r, p, d : rarity * nat * ability_storage) =
-    let _ = _admin_only d in
+    let _ = _manager_only d in
     [], {d with proba_rarity = Map.update r (Some p) d.proba_rarity }
 
 let new_ability (id,r: ability_id * rarity) : ability_data = {
@@ -110,7 +125,7 @@ let rec _create_ability (rl, d : rarity list * ability_storage) : ability_storag
 	| _ -> d
 
 let create_ability (rl, d : rarity list * ability_storage) =
-    let _ = _admin_only d in
+    let _ = _manager_only d in
     [], _create_ability (rl, d)
 
 // We split data in block of 2 bytes: if 0x0000 random, otherwise, the value as aid
@@ -126,14 +141,14 @@ let rec _mint (fid, data, d: fighter_id *(ability_id list) * ability_storage) : 
 	)
 
 let mint (id, data, d: fighter_id * (ability_id list) * ability_storage) =
-    let _ = if Tezos.get_sender () <> d.fighter_addr then failwith ERROR.rights_other in
+    let _ = _manager_only d in
 	let d = { d with fighter_abilities = Big_map.add id Set.empty d.fighter_abilities } in
 	let d = _mint (id, data, d) in
 	[], d
 
 // TODO Fusion most likely to be reworked (by default, this just makes an union)
 let fusion (id, father, mother, data, d: fighter_id * fighter_id * fighter_id * (ability_id list) * ability_storage) =
-    let _ = if Tezos.get_sender () <> d.fighter_addr then failwith ERROR.rights_other in
+    let _ = _manager_only d in
 	if List.length data <> 0n
 	then mint (id,data,d)
 	else
@@ -143,11 +158,11 @@ let fusion (id, father, mother, data, d: fighter_id * fighter_id * fighter_id * 
 	[], { d with fighter_abilities = Big_map.add id set d.fighter_abilities }
 
 let learn_ability (fid, aid, d: fighter_id * ability_id * ability_storage) =
-    let _ = if Tezos.get_sender () <> d.fighter_addr then failwith ERROR.rights_other in
+    let _ = _manager_only d in
 	[], (_learn_ability (fid, aid, d))
 
 let forget_ability (fid, aid, d: fighter_id * ability_id * ability_storage) =
-    let _ = if Tezos.get_sender () <> d.fighter_addr then failwith ERROR.rights_other in
+    let _ = _manager_only d in
 	let known = _get_fighter_abilities (fid, d) in
 	let _ = if not (Set.mem aid known) then failwith ERROR.ability_unknown in
 	[], { d with
@@ -157,7 +172,8 @@ let forget_ability (fid, aid, d: fighter_id * ability_id * ability_storage) =
 (** Main function of the smart contract *)
 let main (action, d: ability_parameter * ability_storage) = 
     ( match action with
-    | SetFighterAddr addr -> set_fighter_addr(addr,d)
+    | SetAdmins addrs -> set_admins(addrs,d)
+    | SetManagers addrs -> set_managers(addrs,d)
     | SetProbaRarity (r,p) -> set_proba_rarity(r,p,d)
     | CreateAbility rl -> create_ability(rl,d)
     | Mint (id,data) -> mint(id,data,d)
@@ -170,7 +186,4 @@ let main (action, d: ability_parameter * ability_storage) =
 [@view] let get_ability_data = _get_ability_data
 [@view] let get_fighter_abilites = _get_fighter_abilities
 [@view] let get_available_abilites = _get_available_abilities
-[@view] let get_addr (_,d: unit * ability_storage) = {
-    fighter = d.fighter_addr
-}
 [@view] let get_proba (_,d: unit * ability_storage) = d.proba_rarity

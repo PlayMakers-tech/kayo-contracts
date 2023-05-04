@@ -5,6 +5,7 @@
     can get the skin, the xp and encrypted data about a Fighter.
     The attributes are mainly static after minted via the Fighter contract,
     besides the XP which can be incremented by rewards from other contracts.
+    Fighter and any contracts granting XP must have manager rights.
     @author Maxime Niankouri - PlayMakers - 2023
     @version 1.0.0
 *)
@@ -15,7 +16,11 @@
 
 (** Private function to check that the caller is admin *)
 let _admin_only (d: attribute_storage) =
-    if Tezos.get_sender () <> d.admin then failwith ERROR.rights_admin
+    if not (Set.mem (Tezos.get_sender ()) d.admins) then failwith ERROR.rights_admin
+
+(** Private function to check that the caller is manager *)
+let _manager_only (d: attribute_storage) =
+    if not (Set.mem (Tezos.get_sender ()) d.managers) then failwith ERROR.rights_manager
 
 (** Private function to get attribute data out of a fighter id *)
 let _get_attribute_data (id, d: fighter_id * attribute_storage) =
@@ -82,17 +87,27 @@ let fuse_attribute (id, father, mother, data, d: fighter_id * fighter_id * fight
         skin = _random_skin_node (c, f.skin, m.skin, d)
     }
 
-let set_fighter_addr (addr, d : address * attribute_storage) =
+(** Set the address set of admins
+    @caller admin
+*)
+let set_admins (addrs, d : address set * attribute_storage) =
     let _ = _admin_only d in
-    [], {d with fighter_addr = addr}
-let set_fight_addr (addr, d : address * attribute_storage) =
+    [], {d with admins = addrs}
+
+(** Set the address set of managers
+    Note that we expect to have Smart contracts in there too
+    @caller admin
+*)
+let set_managers (addrs, d : address set * attribute_storage) =
     let _ = _admin_only d in
-    [], {d with fight_addr = addr}
+    [], {d with managers = addrs}
+
 let set_skin_nodes (proba, l, d : nat * (attribute_skin_node list) * attribute_storage) =
-    let _ = _admin_only d in
+    let _ = _manager_only d in
     [], {d with skin_nodes = (proba, l)}
+
 let set_skin_leaves (proba, l, d : nat * (attribute_skin_node list) * attribute_storage) =
-    let _ = _admin_only d in
+    let _ = _manager_only d in
     [], {d with skin_leaves = (proba, l)}
 
 (** Private function to add XP to a fighter and compute the induced level up if any *)
@@ -107,13 +122,11 @@ let rec _add_xp_and_lvl_up (attr, xp, lvl: attribute_data * nat * nat) : (attrib
 
 (** EarnXP entrypoint
 	Grants some XP to the selected fighter
-	TODO Tournament should be able to reward too
-	@caller admin|Fight|Tournament
+	@caller manager
 	@event levelUp (fighter_id, nat)
 *)
 let earn_xp (id, xp, d: fighter_id * nat * attribute_storage) =
-    let _ =  if not (Set.mem (Tezos.get_sender ()) (Set.literal [d.admin;d.fight_addr]))
-    then failwith ERROR.rights_other in
+    let _ = _manager_only d in
 	let attr = _get_attribute_data (id,d) in
 	let (attr, lvl) = _add_xp_and_lvl_up (attr,xp,0n) in
 	let op = if lvl = 0n then [] else [Tezos.emit "%levelUp" ((id, lvl): event_level_up)] in
@@ -121,28 +134,26 @@ let earn_xp (id, xp, d: fighter_id * nat * attribute_storage) =
 
 (** Mint entrypoint
 	Called through Fighter RealMint when a new fighter is minted
-	@caller Fighter
-	@event levelUp (fighter_id, nat)
+	@caller manager
 *)
 let mint (id, data, d: fighter_id * attribute_value * attribute_storage) =
-    let _ = if Tezos.get_sender () <> d.fighter_addr then failwith ERROR.rights_other in
+    let _ = _manager_only d in
 	[], { d with attributes = Big_map.add id (new_attribute (id, data, d)) d.attributes }
 
 (** Fusion entrypoint
 	Called through Fighter RealMint when a fused fighter is minted
 	TODO The fusion needs to be reworked
-	@caller Fighter
-	@event levelUp (fighter_id, nat)
+	@caller manager
 *)
 let fusion (id, father, mother, data, d: fighter_id * fighter_id * fighter_id * attribute_value * attribute_storage) =
-    let _ = if Tezos.get_sender () <> d.fighter_addr then failwith ERROR.rights_other in
+    let _ = _manager_only d in
 	[], { d with attributes = Big_map.add id (fuse_attribute (id, father, mother, data, d)) d.attributes }
 
 (** Main function of the smart contract *)
 let main (action, d: attribute_parameter * attribute_storage) = 
     ( match action with
-    | SetFighterAddr addr -> set_fighter_addr(addr,d)
-    | SetFightAddr addr -> set_fight_addr(addr,d)
+    | SetAdmins addrs -> set_admins(addrs,d)
+    | SetManagers addrs -> set_managers(addrs,d)
     | SetSkinNodes (proba,l) -> set_skin_nodes(proba,l,d)
     | SetSkinLeaves (proba,l) -> set_skin_leaves(proba,l,d)
     | EarnXP (id,xp) -> earn_xp(id,xp,d)
@@ -152,7 +163,3 @@ let main (action, d: attribute_parameter * attribute_storage) =
 
 
 [@view] let get_attribute_data = _get_attribute_data
-[@view] let get_addr (_,d: unit * attribute_storage) = {
-    fighter = d.fighter_addr;
-    fight = d.fight_addr
-}

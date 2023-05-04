@@ -14,7 +14,11 @@
 
 (** Private function to check that the caller is admin *)
 let _admin_only (d: marketfighter_storage) =
-    if Tezos.get_sender () <> d.admin then failwith ERROR.rights_admin
+    if not (Set.mem (Tezos.get_sender ()) d.admins) then failwith ERROR.rights_admin
+
+(** Private function to check that the caller is manager *)
+let _manager_only (d: marketfighter_storage) =
+    if not (Set.mem (Tezos.get_sender ()) d.managers) then failwith ERROR.rights_manager
 
 (** Private function to get fighter data out of its id from Fighter contract *)
 let _get_fighter_data (a, d: fighter_id * marketfighter_storage) =
@@ -52,6 +56,21 @@ let transaction (id, price, seller, buyer, op, d : fighter_id * tez * address * 
         buys = Big_map.update id buy_map d.buys
     }
 
+
+(** Set the address set of admins
+    @caller admin
+*)
+let set_admins (addrs, d : address set * marketfighter_storage) =
+    let _ = _admin_only d in
+    [], {d with admins = addrs}
+
+(** Set the address set of managers
+    @caller admin
+*)
+let set_managers (addrs, d : address set * marketfighter_storage) =
+    let _ = _admin_only d in
+    [], {d with managers = addrs}
+
 (** Sell entrypoint
     Set anf offer for sale, effectively listing a fighter
     @caller owner
@@ -68,13 +87,13 @@ let sell (id, price, d : fighter_id * tez * marketfighter_storage) =
     let (buyer, buy_price) : address * tez =
         if Set.mem id d.listed_offer then
             (match (Big_map.find_opt id d.buys) with
-                | None -> (d.admin, 0tez)
+                | None -> (d.fighter_addr, 0tez)
                 | Some buy_map ->        
                     let folded = fun ((buyer,best), (addr,data): ( address * tez ) * (address * marketfighter_data))
                         -> if data.price > best then (addr,data.price) else (buyer,best) in
-                     Map.fold folded buy_map (d.admin, 0tez)
+                     Map.fold folded buy_map (d.fighter_addr, 0tez)
                 )
-        else (d.admin, 0tez)
+        else (d.fighter_addr, 0tez)
     in 
     if buy_price < price then
         let data : marketfighter_data = {
@@ -169,10 +188,10 @@ let set_market_open (v, d : bool * marketfighter_storage) =
     let _ = _admin_only d in
     [], {d with is_open = v}
 let set_listing_fee (v, d : tez * marketfighter_storage) =
-    let _ = _admin_only d in
+    let _ = _manager_only d in
     [], {d with listing_fee = v}
 let set_min_price (v, d : tez * marketfighter_storage) =
-    let _ = _admin_only d in
+    let _ = _manager_only d in
     [], {d with min_price = v}
 let set_fighter_addr (addr, d : address * marketfighter_storage) =
     let _ = _admin_only d in
@@ -188,6 +207,8 @@ let sink_fees (addr, d: address * marketfighter_storage) =
 (** Main function of the smart contract *)
 let main (action, d: marketfighter_parameter * marketfighter_storage) = 
     ( match action with
+    | SetAdmins addrs -> set_admins(addrs,d)
+    | SetManagers addrs -> set_managers(addrs,d)
     | SetMarketOpen value -> set_market_open(value,d)
     | SetListingFee value -> set_listing_fee(value,d)
     | SetMinPrice value -> set_min_price(value,d)

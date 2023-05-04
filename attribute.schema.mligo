@@ -17,17 +17,16 @@ type attribute_data = {
 }
 
 type attribute_storage = {
-    fight_addr: address;
-    fighter_addr: address;
-    admin: address;
+    admins: address set;
+    managers: address set;
     skin_nodes: nat * (attribute_skin_node list);
     skin_leaves: nat * (attribute_skin_node list);
     attributes: (fighter_id, attribute_data) big_map
 }
 
 type attribute_parameter =
-| SetFightAddr of address
-| SetFighterAddr of address
+| SetAdmins of address set
+| SetManagers of address set
 | SetSkinNodes of nat * (attribute_skin_node list)
 | SetSkinLeaves of nat * (attribute_skin_node list)
 | EarnXP of fighter_id * nat

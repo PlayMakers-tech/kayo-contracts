@@ -17,7 +17,15 @@
 
 (** Private function to check that the caller is admin *)
 let _admin_only (d: tournament_storage) =
-    if Tezos.get_sender () <> d.admin then failwith ERROR.rights_admin
+    if not (Set.mem (Tezos.get_sender ()) d.admins) then failwith ERROR.rights_admin
+
+(** Private function to check that the caller is manager *)
+let _manager_only (d: tournament_storage) =
+    if not (Set.mem (Tezos.get_sender ()) d.managers) then failwith ERROR.rights_manager
+
+(** Private function to check that the caller is scheduler *)
+let _scheduler_only (d: tournament_storage) =
+    if not (Set.mem (Tezos.get_sender ()) d.schedulers) then failwith ERROR.rights_scheduler
 
 (** Private function to get fighter data out of its id from Fighter contract *)
 let _get_fighter_data (a,d: fighter_id * tournament_storage) =
@@ -27,6 +35,28 @@ let _get_fighter_data (a,d: fighter_id * tournament_storage) =
 (** Private function to get tournament data out of its id *)
 let _get_tournament_data (id, d: tournament_id * tournament_storage) =
     Option.unopt_with_error (Big_map.find_opt id d.tournaments) ERROR.tournament_id
+
+
+(** Set the address set of admins
+    @caller admin
+*)
+let set_admins (addrs, d : address set * tournament_storage) =
+    let _ = _admin_only d in
+    [], {d with admins = addrs}
+
+(** Set the address set of managers
+    @caller admin
+*)
+let set_managers (addrs, d : address set * tournament_storage) =
+    let _ = _admin_only d in
+    [], {d with managers = addrs}
+
+(** Set the address set of schedulers
+    @caller manager
+*)
+let set_schedulers (addrs, d : address set * tournament_storage) =
+    let _ = _manager_only d in
+    [], {d with schedulers = addrs}
 
 let set_tournament_fee (v, d : tez * tournament_storage) =
     let _ = _admin_only d in
@@ -66,7 +96,7 @@ let new_tournament (id, stake, stamp: tournament_id * tournament_stake * timesta
 	@event newTournament (id, stake, timestamp)
 *)
 let create_tournament (stake, stamp, d: tournament_stake * timestamp * tournament_storage) =
-    let _ = _admin_only d in
+    let _ = _scheduler_only d in
     [Tezos.emit "%newTournament" ((d.next_id, stake, stamp): event_new_tournament)],
     { d with
         next_id = d.next_id + 1n;
@@ -78,7 +108,7 @@ let create_tournament (stake, stamp, d: tournament_stake * timestamp * tournamen
 	@caller tournament_manager
 *)
 let cancel_tournament (id, d: tournament_id * tournament_storage) =
-    let _ = _admin_only d in
+    let _ = _scheduler_only d in
     let t = _get_tournament_data (id,d) in
     let _ = if t.state <> Open then failwith ERROR.cancel_not_open in
 	let _free_fighters (op, fid : operation list * fighter_id) : operation list =
@@ -119,7 +149,7 @@ let join_tournament (id, a, d: tournament_id * fighter_id * tournament_storage) 
 	@event generatedTree tournament_id
 *)
 let generate_tree (id, _seed, d: tournament_id * nat * tournament_storage) =
-    let _ = _admin_only d in
+    let _ = _scheduler_only d in
     let t = _get_tournament_data (id,d) in
     let _ = if t.state <> Open then failwith ERROR.close_not_open in
 	let _score_map (map, fid: (fighter_id, int) map * fighter_id) : (fighter_id, int) map =
@@ -136,7 +166,7 @@ let generate_tree (id, _seed, d: tournament_id * nat * tournament_storage) =
 	@caller tournament_manager
 *)
 let next_phase (id, d: tournament_id * tournament_storage) =
-    let _ = _admin_only d in
+    let _ = _scheduler_only d in
     let t = _get_tournament_data (id,d) in
     let _ = if Set.cardinal t.pending_fights <> 0n then failwith ERROR.pending_fights in
     let _ = if t.state <> (Closed: tournament_state) && t.state <> (OnGoing: tournament_state)
@@ -148,6 +178,9 @@ let next_phase (id, d: tournament_id * tournament_storage) =
 (** Main function of the smart contract *)
 let main (action, d: tournament_parameter * tournament_storage) = 
     ( match action with
+    | SetAdmins addrs -> set_admins(addrs,d)
+    | SetManagers addrs -> set_managers(addrs,d)
+    | SetSchedulers addrs -> set_schedulers(addrs,d)
     | SetTournamentFee value -> set_tournament_fee(value,d)
     | SetFighterAddr addr -> set_fighter_addr(addr,d)
     | SetFightAddr addr -> set_fight_addr(addr,d)
@@ -164,8 +197,4 @@ let main (action, d: tournament_parameter * tournament_storage) =
 [@view] let get_tournament_data = _get_tournament_data
 [@view] let get_fees (_,d: unit * tournament_storage) = {
     tournament = d.tournament_fee
-}
-[@view] let get_addr (_,d: unit * tournament_storage) = {
-    fight = d.fight_addr;
-    fighter = d.fighter_addr
 }

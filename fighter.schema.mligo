@@ -21,37 +21,36 @@ type fighter_data = {
     name: string
 }
 
-
 type fighter_storage = {
+    admins: address set;
+    managers: address set;
+    minters: address set;
+    ability_addr: address;
+    attribute_addr: address;
     next_id: fighter_id;
     mint_fee: tez;
     fusion_fee: tez;
-    fight_addr: address;
-    tournament_addr: address;
-    attribute_addr: address;
-    ability_addr: address;
-    marketfighter_addr: address;
-    admin: address;
     mints: fighter_id set;
     fighters: (fighter_id, fighter_data) big_map;
     fighters_by_owner: (address, fighter_id set) big_map;
 }
 
 type fighter_parameter =
-| Mint
-| RealMint of fighter_id * bytes * (ability_id list)
-| SetMintFee of tez
-| SetFusionFee of tez
-| SetFightAddr of address
-| SetTournamentAddr of address
+| SetAdmins of address set
+| SetManagers of address set
+| SetMinters of address set
 | SetAttributeAddr of address
 | SetAbilityAddr of address
-| SetMarketfighterAddr of address
-| Fusion of fighter_id * fighter_id
+| SetMintFee of tez
+| SetFusionFee of tez
+| RealMint of fighter_id * bytes * (ability_id list)
 | SetFighterListed of fighter_id * bool
-| Transfer of fighter_id * address
-| SetName of fighter_id * string
 | SetFighterState of fighter_id * fight_id * tournament_id * fight_queue
 | SinkFees of address
+// User entrypoints:
+| Mint
+| Fusion of fighter_id * fighter_id
+| SetName of fighter_id * string
+| Transfer of fighter_id * address
 
 #endif

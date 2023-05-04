@@ -36,9 +36,14 @@ module ERROR =
 	let stake         = "Missing expected stake value"
 	let price         = "Missing expected price value"
 
-	let rights_admin  = "Missing admin rights"
-	let rights_other  = "Missing admin or contract rights"
-	let rights_owner  = "Missing owner rights"
+	let rights_admin     = "Missing admin rights"
+	let rights_manager   = "Missing manager rights"
+	let rights_minter    = "Missing minter rights"
+	let rights_matcher   = "Missing matcher rights"
+	let rights_resolver  = "Missing resolver rights"
+	let rights_scheduler = "Missing scheduler rights"
+	let rights_other     = "Missing admin or contract rights"
+	let rights_owner     = "Missing owner rights"
 
 	let rarity_overload = "Rarity overload"
 	let ability_known   = "Ability already known"

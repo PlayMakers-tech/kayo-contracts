@@ -27,16 +27,21 @@ type tournament_data = {
 }
 
 type tournament_storage = {
+    admins: address set;
+    managers: address set;
+    schedulers: address set;
     next_id: tournament_id;
     tournament_fee: tez;
     fighter_addr: address;
     fight_addr: address;
-    admin: address;
     active_tournaments: tournament_id set;
     tournaments: (tournament_id, tournament_data) big_map
 }
 
 type tournament_parameter =
+| SetAdmins of address set
+| SetManagers of address set
+| SetSchedulers of address set
 | SetTournamentFee of tez
 | SetFighterAddr of address
 | SetFightAddr of address
