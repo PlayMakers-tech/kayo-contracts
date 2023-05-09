@@ -26,11 +26,11 @@ let min_listing_price = 8tez
 
 //************* Declaration of functions *************//
 let print_checkmark (given, expected : bool * bool) =
-  Test.print (if given = expected then "  v_true" else "  x_false")
+  Test.print (if given = expected then "ok" else "not ok")
 
-let print_step (toPrint : string) = Test.println (" : " ^ toPrint)
+let print_step (toPrint : string) = Test.println (" - " ^ toPrint)
 
-let print_topic (toPrint : string) = Test.println (toPrint)
+let print_topic (toPrint : string) = Test.println ("# " ^ toPrint)
 
 let test_entrypoint (name : string) (a : test_exec_result) (expected : bool) =
   match a with
@@ -43,7 +43,7 @@ let test_entrypoint (name : string) (a : test_exec_result) (expected : bool) =
       let _ = print_step name in
       let _ =
         Test.print
-          "      error_detected The previous test shows the following error : " in
+          "  # info: The previous test shows the following error -> " in
       let _ = Test.log err in
       0n
 
