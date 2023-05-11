@@ -67,7 +67,8 @@ let new_ability (id,r: ability_id * rarity) : ability_data = {
 
 let _learn_ability (fid, aid, d: fighter_id * ability_id * ability_storage) =
 	let a = _get_ability_data (aid, d) in
-	let _ = if a.rarity = Unique && a.cnt > 0n then failwith ERROR.rarity_overload in
+	// Note that the check below is commented to support inactive parents keeping their Abilities
+	//let _ = if a.rarity = Unique && a.cnt > 0n then failwith ERROR.rarity_overload in
 	let known = _get_fighter_abilities (fid, d) in
 	let _ = if Set.mem aid known then failwith ERROR.ability_known in
 	let d = { d with
