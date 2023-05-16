@@ -50,7 +50,7 @@ let beforeTransfer (f: fighter_data) =
     else if f.minting=true      then failwith ERROR.minting
 
 (** Initializing a new fighter object with default values *)
-let new_fighter (id, owner: fighter_id * address) =
+let new_fighter (id, owner, source: fighter_id * address * (shop_item option)) =
     ({
         id = id;
         owner = owner;
@@ -62,6 +62,7 @@ let new_fighter (id, owner: fighter_id * address) =
         queue = NotQueuing;
         father = 0n;
         mother = 0n;
+        source = source;
         name = ""
 
     } : fighter_data)
@@ -70,15 +71,33 @@ let new_fighter (id, owner: fighter_id * address) =
     Note that this only requests a mint, and reserve its id
     @caller any
     @amount mint_fee
-    @event minting id
+    @event minting (id, xxx)
 *)
 let mint (d : fighter_storage) =
     let _ = if Tezos.get_amount () <> d.mint_fee then failwith ERROR.fee in
     let owner = Tezos.get_sender () in
-    [Tezos.emit "%minting" (d.next_id: event_minting)],
+    [Tezos.emit "%minting" (d.next_id, None: event_minting)],
     { d with
         next_id = d.next_id + 1n;
-        fighters = Big_map.add d.next_id (new_fighter (d.next_id, owner)) d.fighters;
+        fighters = Big_map.add d.next_id (new_fighter (d.next_id, owner, None)) d.fighters;
+        mints = Set.add d.next_id d.mints
+    }
+
+(** MintFromShop entrypoint
+    When someone uses the shop to buy a relevant shop_item, this entrypoint can be used
+    to requests the corresponding mint and reserve its id.
+    The shop_item must be consumable by this Fighter contract and it will consume one.
+    The item consumed is specified in the event emitted and in the fighter data
+    @caller any
+    @event minting (id, item)
+*)
+let mint_from_shop (item, d : shop_item * fighter_storage) =
+    let owner = Tezos.get_sender () in    
+    [Tezos.transaction (ConsumeItem (item,1n,owner)) 0tez (Tezos.get_contract d.shop_addr);
+     Tezos.emit "%minting" (d.next_id, Some item: event_minting)],
+    { d with
+        next_id = d.next_id + 1n;
+        fighters = Big_map.add d.next_id (new_fighter (d.next_id, owner, Some item)) d.fighters;
         mints = Set.add d.next_id d.mints
     }
 
@@ -163,6 +182,13 @@ let set_ability_addr (addr, d : address * fighter_storage) =
     let _ = _admin_only d in
     [], {d with ability_addr = addr}
 
+(** Set the address of the Shop smart contract
+    @caller admin
+*)
+let set_shop_addr (addr, d : address * fighter_storage) =
+    let _ = _admin_only d in
+    [], {d with shop_addr = addr}
+
 (** Set the combat state of a fighter
     @caller manager
 *)
@@ -200,14 +226,14 @@ let fusion (father, mother, d: fighter_id * fighter_id * fighter_storage) =
     let set = Set.remove father set in
     let set = Set.remove mother set in
     let fbo = Big_map.update owner (Some set) d.fighters_by_owner in
-    let n = new_fighter (d.next_id, owner) in
+    let n = new_fighter (d.next_id, owner, None) in
     let n = { n with father = father; mother = mother } in
     let f = { f with inactive = true } in
     let m = { m with inactive = true } in
     let fmap = Big_map.add d.next_id n d.fighters in
     let fmap = Big_map.update father (Some f) fmap in
     let fmap = Big_map.update mother (Some m) fmap in
-    [Tezos.emit "%minting" (d.next_id: event_minting)],
+    [Tezos.emit "%minting" (d.next_id, None: event_minting)],
     { d with
         next_id = d.next_id + 1n;
         fighters = fmap;
@@ -278,11 +304,13 @@ let main (action, d: fighter_parameter * fighter_storage) =
     | SetManagers addrs -> set_managers(addrs,d)
     | SetMinters addrs -> set_minters(addrs,d)
     | Mint -> mint(d)
+    | MintFromShop (item) -> mint_from_shop(item,d)
     | RealMint (id,attr,abil) -> real_mint(id,attr,abil,d)
     | SetMintFee value -> set_mint_fee(value,d)
     | SetFusionFee value -> set_fusion_fee(value,d)
     | SetAttributeAddr addr -> set_attribute_addr(addr,d)
     | SetAbilityAddr addr -> set_ability_addr(addr,d)
+    | SetShopAddr addr -> set_shop_addr(addr,d)
     | Fusion (father,mother) -> fusion(father,mother,d)
     | SetFighterListed (id,state) -> set_fighter_listed(id,state,d)
     | Transfer (id,addr) -> transfer(id,addr,d)

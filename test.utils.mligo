@@ -70,6 +70,7 @@ let init_store_fighter : fighter_storage = {
     fusion_fee = fusion_fee;
     attribute_addr = dummy_address;
     ability_addr = dummy_address;
+    shop_addr = dummy_address;
     mints = Set.empty;
     fighters = Big_map.empty;
     fighters_by_owner = Big_map.empty
@@ -200,7 +201,20 @@ let init_store_shop : shop_storage = {
     admins = Set.literal [admin_address];
     managers = Set.literal [manager_address];
     is_open = true;
-    items = Map.empty;
+    items = Map.literal [
+        "fighter1", {
+            item = "fighter1";
+            quantity = 99999n;
+            consumers = Set.literal [(fighter_addr: address)];
+            price = 1tez
+        };
+        "fight1", {
+            item = "fight1";
+            quantity = 99999n;
+            consumers = Set.literal [(fight_addr: address)];
+            price = 1tez
+        }
+    ];
     bundles = Map.empty;
     owned_items = Big_map.empty        
 }
@@ -217,6 +231,7 @@ let test_shop (name : string) (addr, op, amount : address * shop_parameter * tez
 let _ = Test.set_source admin_address
 let _ = Test.transfer_to_contract fighter_contract (SetAbilityAddr    ability_addr  ) 0tez
 let _ = Test.transfer_to_contract fighter_contract (SetAttributeAddr  attribute_addr) 0tez
+let _ = Test.transfer_to_contract fighter_contract (SetShopAddr       shop_addr     ) 0tez
 let _ = Test.transfer_to_contract fight_contract   (SetAttributeAddr  attribute_addr) 0tez
 let _ = Test.transfer_to_contract fighter_contract (SetManagers (Set.literal [manager_address;fight_addr;tournament_addr;marketfighter_addr])) 0tez
 let _ = Test.transfer_to_contract fight_contract   (SetManagers (Set.literal [manager_address;tournament_addr])) 0tez

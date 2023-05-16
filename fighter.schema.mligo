@@ -6,6 +6,7 @@ type fighter_id = nat
 #include "fight.schema.mligo"
 #include "tournament.schema.mligo"
 #include "ability.schema.mligo"
+#include "shop.schema.mligo"
 
 type fighter_data = {
     id: fighter_id;
@@ -18,6 +19,7 @@ type fighter_data = {
     queue: fight_queue;
     father: fighter_id;
     mother: fighter_id;
+    source: shop_item option;
     name: string
 }
 
@@ -27,6 +29,7 @@ type fighter_storage = {
     minters: address set;
     ability_addr: address;
     attribute_addr: address;
+    shop_addr: address;
     next_id: fighter_id;
     mint_fee: tez;
     fusion_fee: tez;
@@ -41,6 +44,7 @@ type fighter_parameter =
 | SetMinters of address set
 | SetAttributeAddr of address
 | SetAbilityAddr of address
+| SetShopAddr of address
 | SetMintFee of tez
 | SetFusionFee of tez
 | RealMint of fighter_id * bytes * (ability_id list)
@@ -49,6 +53,7 @@ type fighter_parameter =
 | SinkFees of address
 // User entrypoints:
 | Mint
+| MintFromShop of shop_item
 | Fusion of fighter_id * fighter_id
 | SetName of fighter_id * string
 | Transfer of fighter_id * address

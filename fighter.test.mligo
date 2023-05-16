@@ -11,6 +11,10 @@ let test =
     let _ = test_fighter "Should not allow user to use SetAttributeAddr entrypoint"  (alice_address, SetAttributeAddr attribute_addr, 0tez) false in
     let _ = test_fighter "Should allow admin to use SetAttributeAddr entrypoint"     (admin_address, SetAttributeAddr attribute_addr, 0tez) true in
 
+    let _ = print_topic "SetShopAddr" in
+    let _ = test_fighter "Should not allow user to use SetShopAddr entrypoint"  (alice_address, SetShopAddr shop_addr, 0tez) false in
+    let _ = test_fighter "Should allow admin to use SetShopAddr entrypoint"     (admin_address, SetShopAddr shop_addr, 0tez) true in
+
     let _ = print_topic "SetAttributeAddr (fight_contract)" in
     let _ = test_fight "Should not allow user to use SetAttributeAddr entrypoint"  (alice_address, SetAttributeAddr attribute_addr, 0tez) false in
     let _ = test_fight "Should allow admin to use SetAttributeAddr entrypoint"     (admin_address, SetAttributeAddr attribute_addr, 0tez) true in
@@ -27,7 +31,7 @@ let test =
 
     let event : event_minting list = Test.get_last_events_from fighter_typed_addr "minting" in
     let _ = match (List.head_opt event) with
-      | Some (id) -> print_checkmark (id = alice_token1, true)
+      | Some (id, _) -> print_checkmark (id = alice_token1, true)
       | None -> print_checkmark (false, true) in
     let _ = print_step "Should catch minting event during the mint" in
 
@@ -154,7 +158,7 @@ let test =
     
     let event : event_minting list = Test.get_last_events_from fighter_typed_addr "minting" in
     let _ = match (List.head_opt event) with
-      | Some (id) -> print_checkmark (id = alice_token3, true)
+      | Some (id, _) -> print_checkmark (id = alice_token3, true)
       | None -> print_checkmark (false, true) in
     let _ = print_step "Should catch minting event during fusion" in
 
@@ -268,6 +272,24 @@ let test =
     let _ = Test.transfer_to_contract fighter_contract (Mint) 20tez in
     let token4 : fighter_id = 5n in
     let _ = test_fighter "Should not allow the user to transfer a fighter not fully minted" (alice_address, (Transfer (token4, bob_address)), 30tez) false in
+
+
+    // ******************** MintFromShop test ******************** // 
+    let _ = print_topic "MintFromShop" in
+
+    let item_name : shop_item = "fighter1" in
+    let _ = Test.set_source alice_address in
+    let _ = test_fighter "Should not allow user to mint from shop without item" (alice_address, (MintFromShop item_name), 0tez) false in
+    let _ = Test.transfer_to_contract shop_contract (BuyItem (item_name,1n)) 1tez in
+    let _ = test_fighter "Should allow user to mint from shop with item" (alice_address, (MintFromShop item_name), 0tez) true in
+    let token_from_shop : fighter_id = 6n in
+    
+
+    let event : event_minting list = Test.get_last_events_from fighter_typed_addr "minting" in
+    let _ = match (List.head_opt event) with
+      | Some (id, source) -> print_checkmark (id = token_from_shop && source = Some item_name, true)
+      | None -> print_checkmark (false, true) in
+    let _ = print_step "Should catch minting event with source during the mint" in
 
 
     let _ = Test.println "" in
