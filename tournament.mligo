@@ -112,7 +112,7 @@ let cancel_tournament (id, d: tournament_id * tournament_storage) =
     let t = _get_tournament_data (id,d) in
     let _ = if t.state <> Open then failwith ERROR.cancel_not_open in
 	let _free_fighters (op, fid : operation list * fighter_id) : operation list =
-		(Tezos.transaction (SetFighterState (fid,0n,0n,NotQueuing)) 0tez (Tezos.get_contract d.fighter_addr))::op
+		(Tezos.transaction (SetFighterState (fid,0n,0n,None)) 0tez (Tezos.get_contract d.fighter_addr))::op
 	in
 	(Set.fold _free_fighters t.fighters []), { d with
 		active_tournaments = Set.remove id d.active_tournaments;
@@ -128,16 +128,15 @@ let join_tournament (id, a, d: tournament_id * fighter_id * tournament_storage) 
     let _ = if t.state <> Open then failwith ERROR.join_not_open in
 	let fa = _get_fighter_data (a,d) in
 	let _ = if Tezos.get_sender () <> fa.owner then failwith ERROR.rights_owner in
-	let _ = if fa.listed || fa.tournament <> 0n || fa.fight <> 0n || fa.queue <> NotQueuing
+	let _ = if fa.listed || fa.tournament <> 0n || fa.fight <> 0n || Option.is_some fa.queue
 	then failwith ERROR.occupied in
 	let _ = (match t.stake with
 		| NoStake -> if Tezos.get_amount () <> d.tournament_fee then failwith ERROR.fee
-		| FighterStake -> if Tezos.get_amount () <> d.tournament_fee then failwith ERROR.fee
 		| TezStake v -> if Tezos.get_amount () <> (d.tournament_fee + v)  then failwith ERROR.stake
-		| CustomStake -> unit
+        | _ -> unit
 	) in
 	let t = _get_tournament_data (id,d) in
-	[Tezos.transaction (SetFighterState (a,0n,id,NotQueuing)) 0tez (Tezos.get_contract d.fighter_addr)],
+	[Tezos.transaction (SetFighterState (a,0n,id,None)) 0tez (Tezos.get_contract d.fighter_addr)],
 	{ d with tournaments = Big_map.update id (Some {t with fighters = Set.add a t.fighters}) d.tournaments }
 
 

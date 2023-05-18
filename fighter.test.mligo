@@ -213,19 +213,19 @@ let test =
     // ******************** SetFighterState test ******************** // 
     let _ = print_topic "SetFighterState" in
 
-    let _ = test_fighter "Should not let user use SetFighterState" (alice_address, (SetFighterState (alice_token3,0n,0n,NotQueuing)), 0tez) false in
+    let _ = test_fighter "Should not let user use SetFighterState" (alice_address, (SetFighterState (alice_token3,0n,0n,None)), 0tez) false in
     
-    let _ = test_fighter "Should not let admin use SetFighterState" (admin_address, (SetFighterState (alice_token3,0n,0n,NotQueuing)), 0tez) false in
+    let _ = test_fighter "Should not let admin use SetFighterState" (admin_address, (SetFighterState (alice_token3,0n,0n,None)), 0tez) false in
 
-    let _ = test_fighter "Should let manager use SetFighterState" (manager_address, (SetFighterState (alice_token3,0n,0n,FighterStakeQ)), 0tez) true in
+    let _ = test_fighter "Should let manager use SetFighterState" (manager_address, (SetFighterState (alice_token3,0n,0n,Some default_queue)), 0tez) true in
 
     let d : fighter_storage = Test.get_storage_of_address fighter_addr |> Test.decompile in
     let d : fighter_data = Big_map.find alice_token3 d.fighters in
-    let _ = print_checkmark (d.queue = FighterStakeQ, true) in
+    let _ = print_checkmark (d.queue = Some default_queue, true) in
     let _ = print_step "The queue has been correctly updated" in
 
     let _ = Test.set_source manager_address in
-    let _ = Test.transfer_to_contract fighter_contract (SetFighterState (alice_token3,0n,0n,NotQueuing)) 0tez in
+    let _ = Test.transfer_to_contract fighter_contract (SetFighterState (alice_token3,0n,0n,None)) 0tez in
 
 
     // ******************** Transfer test ******************** // 
@@ -257,15 +257,15 @@ let test =
     let _ = Test.transfer_to_contract fighter_contract (SetFighterListed (alice_token3, false)) 0tez in
 
     let _ = Test.set_source manager_address in
-    let _ = Test.transfer_to_contract fighter_contract (SetFighterState (alice_token3, 0n, 0n, FighterStakeQ)) 30tez in
+    let _ = Test.transfer_to_contract fighter_contract (SetFighterState (alice_token3, 0n, 0n, Some default_queue)) 30tez in
     let _ = test_fighter "Should not allow the user to transfer a fighter in queue" (bob_address, (Transfer (alice_token3, bob_address)), 30tez) false in
     
     let _ = Test.set_source manager_address in
-    let _ = Test.transfer_to_contract fighter_contract (SetFighterState (alice_token3, 0n, 1n, NotQueuing)) 30tez in
+    let _ = Test.transfer_to_contract fighter_contract (SetFighterState (alice_token3, 0n, 1n, None)) 30tez in
     let _ = test_fighter "Should not allow the user to transfer a fighter in tournament" (bob_address, (Transfer (alice_token3, bob_address)), 30tez) false in
 
     let _ = Test.set_source manager_address in
-    let _ = Test.transfer_to_contract fighter_contract (SetFighterState (alice_token3, 1n, 0n, NotQueuing)) 30tez in
+    let _ = Test.transfer_to_contract fighter_contract (SetFighterState (alice_token3, 1n, 0n, None)) 30tez in
     let _ = test_fighter "Should not allow the user to transfer a fighter in fight" (bob_address, (Transfer (alice_token3, bob_address)), 30tez) false in
 
     let _ = Test.set_source alice_address in

@@ -16,7 +16,7 @@ type fighter_data = {
     inactive: bool;
     fight: fight_id;
     tournament: tournament_id;
-    queue: fight_queue;
+    queue: fight_queue option;
     father: fighter_id;
     mother: fighter_id;
     source: shop_item option;
@@ -49,7 +49,7 @@ type fighter_parameter =
 | SetFusionFee of tez
 | RealMint of fighter_id * bytes * (ability_id list)
 | SetFighterListed of fighter_id * bool
-| SetFighterState of fighter_id * fight_id * tournament_id * fight_queue
+| SetFighterState of fighter_id * fight_id * tournament_id * (fight_queue option)
 | SinkFees of address
 // User entrypoints:
 | Mint

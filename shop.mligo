@@ -25,6 +25,7 @@ let set_admins (addrs, d : address set * shop_storage) =
     [], {d with admins = addrs}
 
 (** Set the address set of managers
+    Note that the Fight and Tournament contract need to be manager to grant items
     @caller admin
 *)
 let set_managers (addrs, d : address set * shop_storage) =

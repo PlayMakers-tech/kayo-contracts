@@ -24,6 +24,8 @@ let listing_fee    = 0.1tez
 
 let min_listing_price = 8tez
 
+let default_queue : fight_queue = ("League", NoStake, NoReward)
+
 //************* Declaration of functions *************//
 let print_checkmark (given, expected : bool * bool) =
   Test.print (if given = expected then "ok" else "not ok")
@@ -93,6 +95,7 @@ let init_store_fight : fight_storage = {
     fight_fee = fight_fee;
     fighter_addr = (fighter_addr: address);
     attribute_addr = dummy_address;
+    shop_addr = dummy_address;
     fights = Big_map.empty;
     fights_by_fighter = Big_map.empty;
     queues = Big_map.empty
@@ -233,8 +236,10 @@ let _ = Test.transfer_to_contract fighter_contract (SetAbilityAddr    ability_ad
 let _ = Test.transfer_to_contract fighter_contract (SetAttributeAddr  attribute_addr) 0tez
 let _ = Test.transfer_to_contract fighter_contract (SetShopAddr       shop_addr     ) 0tez
 let _ = Test.transfer_to_contract fight_contract   (SetAttributeAddr  attribute_addr) 0tez
+let _ = Test.transfer_to_contract fight_contract   (SetShopAddr       shop_addr     ) 0tez
 let _ = Test.transfer_to_contract fighter_contract (SetManagers (Set.literal [manager_address;fight_addr;tournament_addr;marketfighter_addr])) 0tez
 let _ = Test.transfer_to_contract fight_contract   (SetManagers (Set.literal [manager_address;tournament_addr])) 0tez
+let _ = Test.transfer_to_contract shop_contract    (SetManagers (Set.literal [manager_address;fight_addr;tournament_addr])) 0tez
 
 
 // Create abilities

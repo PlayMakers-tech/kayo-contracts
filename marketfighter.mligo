@@ -27,11 +27,11 @@ let _get_fighter_data (a, d: fighter_id * marketfighter_storage) =
 
 (** Checking that a fighter is in a listable/sellable state *)
 let beforeListing (f: fighter_data) =
-    if      f.queue<>NotQueuing then failwith ERROR.queued
-    else if f.fight<>0n         then failwith ERROR.fighting
-    else if f.tournament<>0n    then failwith ERROR.tournamenting
-    else if f.inactive=true     then failwith ERROR.inactive
-    else if f.minting=true      then failwith ERROR.minting
+    if      Option.is_some f.queue then failwith ERROR.queued
+    else if f.fight<>0n            then failwith ERROR.fighting
+    else if f.tournament<>0n       then failwith ERROR.tournamenting
+    else if f.inactive=true        then failwith ERROR.inactive
+    else if f.minting=true         then failwith ERROR.minting
 
 (** Do a transaction at a given price
     @call Fighter Transfer

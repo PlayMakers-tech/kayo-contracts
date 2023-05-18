@@ -96,15 +96,15 @@ let test =
     let _ = test_tournament "Should not allow user to use JoinTournament with an incorrect fee" (alice_address, JoinTournament (2n, token1), 10tez) false in
     
     let _ = Test.set_source manager_address in
-    let _ = Test.transfer_to_contract fighter_contract (SetFighterState (token1, 0n, 0n, FighterStakeQ)) 0tez in
+    let _ = Test.transfer_to_contract fighter_contract (SetFighterState (token1, 0n, 0n, Some default_queue)) 0tez in
     let _ = test_tournament "Should not allow user to use JoinTournament if the fighter is in queue" (alice_address, JoinTournament (2n, token1), 100tez) false in
 
     let _ = Test.set_source manager_address in
-    let _ = Test.transfer_to_contract fighter_contract (SetFighterState (token1, 0n, 1n, NotQueuing)) 0tez in
+    let _ = Test.transfer_to_contract fighter_contract (SetFighterState (token1, 0n, 1n, None)) 0tez in
     let _ = test_tournament "Should not allow user to use JoinTournament if the fighter is already in tounament" (alice_address, JoinTournament (2n, token1), 100tez) false in
 
     let _ = Test.set_source manager_address in
-    let _ = Test.transfer_to_contract fighter_contract (SetFighterState (token1, 1n, 0n, NotQueuing)) 0tez in
+    let _ = Test.transfer_to_contract fighter_contract (SetFighterState (token1, 1n, 0n, None)) 0tez in
     let _ = test_tournament "Should not allow user to use JoinTournament if the fighter is in fight" (alice_address, JoinTournament (2n, token1), 100tez) false in
     
     let _ = Test.set_source manager_address in
@@ -119,7 +119,7 @@ let test =
     let _ = test_tournament "Should not allow user to use JoinTournament if the fighter is not fully minted" (alice_address, JoinTournament (2n, token4), 100tez) false in
     
     let _ = Test.set_source manager_address in
-    let _ = Test.transfer_to_contract_exn fighter_contract (SetFighterState (token1, 0n, 0n, NotQueuing)) 0tez in
+    let _ = Test.transfer_to_contract_exn fighter_contract (SetFighterState (token1, 0n, 0n, None)) 0tez in
     let _ = test_tournament "Should allow user to use JoinTournament" (alice_address, JoinTournament (2n, token1), 100tez) true in
 
 

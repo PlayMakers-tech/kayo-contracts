@@ -42,12 +42,12 @@ let _get_fighters_by_owner (owner, d: address * fighter_storage) : fighter_id se
 
 (** Checking that a fighter is in a transferrable state *)
 let beforeTransfer (f: fighter_data) =
-    if      f.listed=true       then failwith ERROR.listed
-    else if f.queue<>NotQueuing then failwith ERROR.queued
-    else if f.fight<>0n         then failwith ERROR.fighting
-    else if f.tournament<>0n    then failwith ERROR.tournamenting
-    else if f.inactive=true     then failwith ERROR.inactive
-    else if f.minting=true      then failwith ERROR.minting
+    if      f.listed=true          then failwith ERROR.listed
+    else if Option.is_some f.queue then failwith ERROR.queued
+    else if f.fight<>0n            then failwith ERROR.fighting
+    else if f.tournament<>0n       then failwith ERROR.tournamenting
+    else if f.inactive=true        then failwith ERROR.inactive
+    else if f.minting=true         then failwith ERROR.minting
 
 (** Initializing a new fighter object with default values *)
 let new_fighter (id, owner, source: fighter_id * address * (shop_item option)) =
@@ -59,7 +59,7 @@ let new_fighter (id, owner, source: fighter_id * address * (shop_item option)) =
         minting = true;
         fight = 0n;
         tournament = 0n;
-        queue = NotQueuing;
+        queue = None;
         father = 0n;
         mother = 0n;
         source = source;
@@ -193,7 +193,7 @@ let set_shop_addr (addr, d : address * fighter_storage) =
     @caller manager
 *)
 let set_fighter_state (id,fight,tournament,queue,d:
-        fighter_id * fight_id * tournament_id * fight_queue * fighter_storage) =
+        fighter_id * fight_id * tournament_id * (fight_queue option) * fighter_storage) =
     let _ = _manager_only d in
     let f  = _get_fighter_data (id, d) in
     [], { d with
