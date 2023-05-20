@@ -7,6 +7,8 @@ let init_store: tournament_storage = {
     tournament_fee = 1tez;
     fighter_addr = ("tz3QE72w1vC613ZaeAZwW5fxwrBUQAstyaZy": address);
     fight_addr = ("tz3QE72w1vC613ZaeAZwW5fxwrBUQAstyaZy": address);
+    shop_addr = ("tz3QE72w1vC613ZaeAZwW5fxwrBUQAstyaZy": address);
+    attribute_addr = ("tz3QE72w1vC613ZaeAZwW5fxwrBUQAstyaZy": address);
     active_tournaments = Set.empty;
     tournaments = Big_map.empty
 }

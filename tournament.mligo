@@ -32,6 +32,11 @@ let _get_fighter_data (a,d: fighter_id * tournament_storage) =
     (Option.unopt_with_error (Tezos.call_view "get_fighter_data" a d.fighter_addr) ERROR.fighter_id
     : fighter_data)
 
+(** Private function to get fight data out of its id from Fight contract *)
+let _get_fight_data (a,d: fight_id * tournament_storage) =
+    (Option.unopt_with_error (Tezos.call_view "get_fight_data" a d.fight_addr) ERROR.fight_id
+    : fight_data)
+
 (** Private function to get tournament data out of its id *)
 let _get_tournament_data (id, d: tournament_id * tournament_storage) =
     Option.unopt_with_error (Big_map.find_opt id d.tournaments) ERROR.tournament_id
@@ -67,6 +72,12 @@ let set_fight_addr (addr, d : address * tournament_storage) =
 let set_fighter_addr (addr, d : address * tournament_storage) =
     let _ = _admin_only d in
     [], {d with fighter_addr = addr}
+let set_shop_addr (addr, d : address * tournament_storage) =
+    let _ = _admin_only d in
+    [], {d with shop_addr = addr}
+let set_attribute_addr (addr, d : address * tournament_storage) =
+    let _ = _admin_only d in
+    [], {d with attribute_addr = addr}
 
 (** SinkFees entrypoint
     Allow the admin to retrieve the funds stored on the contract
@@ -78,8 +89,8 @@ let sink_fees (addr, d: address * tournament_storage) =
     [Tezos.transaction unit (Tezos.get_balance ()) (Tezos.get_contract addr)], d
 
 (** Initializing a new tournament object with default values *)
-let new_tournament (id, stake, stamp: tournament_id * tournament_stake * timestamp) : tournament_data =
-	{
+let new_tournament (id, def, stamp: tournament_id * tournament_def * timestamp) : tournament_data =
+	({
 		id = id;
 		fighters = Set.empty;
 		fights = Set.empty;
@@ -87,20 +98,36 @@ let new_tournament (id, stake, stamp: tournament_id * tournament_stake * timesta
 		scores = Map.empty;
 		phase = 0n;
 		start_time = stamp;
-		stake = stake;
-		state = Open
-	}
+		def = def;
+		state = Open;
+        ranks = [];
+        metadata = 0x00
+	} : tournament_data)
+
+(** Recursive utility to affect rewards to top ranked fighters *)
+let rec _grant_rewards (ranks, rewards, d: fighter_id list * tournament_reward * tournament_storage) : operation list =
+    (match ranks with
+        | fid::ft -> (match rewards with
+            | reward::rt ->
+                let f = _get_fighter_data (fid, d) in
+                (match reward with
+                    | TezReward v -> (Tezos.transaction unit v (Tezos.get_contract f.owner))::(_grant_rewards (ft,rt,d))
+                    | ItemReward (item, qty) -> (Tezos.transaction (GrantItem (item, qty, f.owner)) 0tez (Tezos.get_contract d.shop_addr))::(_grant_rewards (ft,rt,d))
+                    | XPReward v -> (Tezos.transaction (EarnXP (fid,v)) 0tez (Tezos.get_contract d.attribute_addr))::(_grant_rewards (ft,rt,d))
+                    | _ -> _grant_rewards (ft,rt,d))
+            | _ -> [])
+        | _ -> [])
 
 (** CreateTournament entrypoint
 	@caller tournament_manager
 	@event newTournament (id, stake, timestamp)
 *)
-let create_tournament (stake, stamp, d: tournament_stake * timestamp * tournament_storage) =
+let create_tournament (def, stamp, d: tournament_def * timestamp * tournament_storage) =
     let _ = _scheduler_only d in
-    [Tezos.emit "%newTournament" ((d.next_id, stake, stamp): event_new_tournament)],
+    [Tezos.emit "%newTournament" (d.next_id, def, stamp: event_new_tournament)],
     { d with
         next_id = d.next_id + 1n;
-        tournaments = Big_map.add d.next_id (new_tournament (d.next_id, stake, stamp)) d.tournaments;
+        tournaments = Big_map.add d.next_id (new_tournament (d.next_id, def, stamp)) d.tournaments;
     	active_tournaments = Set.add d.next_id d.active_tournaments
     }
 
@@ -111,10 +138,10 @@ let cancel_tournament (id, d: tournament_id * tournament_storage) =
     let _ = _scheduler_only d in
     let t = _get_tournament_data (id,d) in
     let _ = if t.state <> Open then failwith ERROR.cancel_not_open in
-	let _free_fighters (op, fid : operation list * fighter_id) : operation list =
-		(Tezos.transaction (SetFighterState (fid,0n,0n,None)) 0tez (Tezos.get_contract d.fighter_addr))::op
-	in
-	(Set.fold _free_fighters t.fighters []), { d with
+    // TODO Could grant Fighters free XP
+    // TODO Need to grant them back their stakes too
+	[Tezos.transaction (SetFightersFree t.fighters) 0tez (Tezos.get_contract d.fighter_addr)],
+    { d with
 		active_tournaments = Set.remove id d.active_tournaments;
 		tournaments = Big_map.update id (Some {t with state = Cancelled}) d.tournaments
 	}
@@ -122,6 +149,7 @@ let cancel_tournament (id, d: tournament_id * tournament_storage) =
 (** JoinTournament entrypoint
 	Allow a fighter to register for a tournament in Open state
 	@caller owner
+    @event joinedTournament (tournament_id, fighter_id)
 *)
 let join_tournament (id, a, d: tournament_id * fighter_id * tournament_storage) =
 	let t = _get_tournament_data (id,d) in
@@ -129,49 +157,129 @@ let join_tournament (id, a, d: tournament_id * fighter_id * tournament_storage) 
 	let fa = _get_fighter_data (a,d) in
 	let _ = if Tezos.get_sender () <> fa.owner then failwith ERROR.rights_owner in
 	let _ = if fa.listed || fa.tournament <> 0n || fa.fight <> 0n || Option.is_some fa.queue
-	then failwith ERROR.occupied in
-	let _ = (match t.stake with
-		| NoStake -> if Tezos.get_amount () <> d.tournament_fee then failwith ERROR.fee
-		| TezStake v -> if Tezos.get_amount () <> (d.tournament_fee + v)  then failwith ERROR.stake
-        | _ -> unit
-	) in
-	let t = _get_tournament_data (id,d) in
-	[Tezos.transaction (SetFighterState (a,0n,id,None)) 0tez (Tezos.get_contract d.fighter_addr)],
-	{ d with tournaments = Big_map.update id (Some {t with fighters = Set.add a t.fighters}) d.tournaments }
+            || fa.inactive || fa.minting then failwith ERROR.occupied in
+	let (_, stake, _, _, _, max_size) = t.def in
+    // Stake the stake
+    let op = (match stake with
+        | NoStake -> if Tezos.get_amount () <> d.tournament_fee then failwith ERROR.fee else []
+        | TezStake v -> if Tezos.get_amount () <> (d.tournament_fee + v) then failwith ERROR.stake else []
+        | ItemStake (item,qty) -> if Tezos.get_amount () <> d.tournament_fee then failwith ERROR.stake else
+            [Tezos.transaction (ConsumeItem (item,qty,fa.owner)) 0tez (Tezos.get_contract d.shop_addr)]
+    ) in
+    let op = (Tezos.transaction (SetFighterState (a,0n,id,None)) 0tez (Tezos.get_contract d.fighter_addr))::op in
+    let op = (Tezos.emit "%joinedTournament" (id, a: event_joined_tournament))::op in
+    let t = { t with
+        fighters = Set.add a t.fighters;
+        state = if max_size = (1n + Set.cardinal t.fighters) then Closed else t.state
+        } in
+    op,
+	{ d with tournaments = Big_map.update id (Some t) d.tournaments }
 
 
 (** GenerateTree entrypoint
 	Go from the Open to the Closed phase: it is not possible for fighters to register
 	any more, but the fights are not starting just yet.
-	We compute the brackets.
-	@caller tournament_manager
+	We provide the metadata to generate the brackets
+	@caller scheduler
 	@event generatedTree tournament_id
 *)
-let generate_tree (id, _seed, d: tournament_id * nat * tournament_storage) =
+let generate_tree (id, metadata, d: tournament_id * tournament_metadata * tournament_storage) =
     let _ = _scheduler_only d in
     let t = _get_tournament_data (id,d) in
-    let _ = if t.state <> Open then failwith ERROR.close_not_open in
+    let _ = if t.state <> Open && t.state <> Closed then failwith ERROR.close_not_open in
+    let (_, _, _, _, min_size, _) = t.def in
+    let _ = if min_size > Set.cardinal t.fighters then failwith ERROR.not_enough_participants in
 	let _score_map (map, fid: (fighter_id, int) map * fighter_id) : (fighter_id, int) map =
 		Map.add fid 0 map
 	in
 	let t = { t with 
 		state = Closed;
-		scores = Set.fold _score_map t.fighters t.scores
+		scores = Set.fold _score_map t.fighters t.scores;
+        metadata = metadata
 	} in
-	[Tezos.emit "%generatedTree" (id: event_generate_tree)], { d with tournaments = Big_map.update id (Some t) d.tournaments }
+	[Tezos.emit "%generatedTree" (id, metadata: event_generate_tree)], { d with tournaments = Big_map.update id (Some t) d.tournaments }
 
 (** NextPhase entrypoint
-	TODO Not implemented yet
-	@caller tournament_manager
+	This is called by the scheduler at the start of every fight phase, the first call
+    being after GenerateTree.
+    It will specify the array of pairings, which is used to force the matchup of the surviving
+    fighters for this phase. The same fighter can't paired twice in the same phase.
+	@caller scheduler
+    @event nextPhase tournament_id phase
 *)
-let next_phase (id, d: tournament_id * tournament_storage) =
+let next_phase (id, pairings, round_amount, round_duration, d: tournament_id * (fighter_id * fighter_id) set * round_amount * round_duration * tournament_storage) =
     let _ = _scheduler_only d in
     let t = _get_tournament_data (id,d) in
-    let _ = if Set.cardinal t.pending_fights <> 0n then failwith ERROR.pending_fights in
-    let _ = if t.state <> (Closed: tournament_state) && t.state <> (OnGoing: tournament_state)
+    let _ = if t.state <> Closed && t.state <> (OnGoing: tournament_state)
     then failwith ERROR.cant_start_next_phase in
-    failwith "Not implemented yet"
-    // Don't forget to remove from active_tournaments
+    let _ = if Set.cardinal t.pending_fights <> 0n then failwith ERROR.pending_fights in
+    let t = { t with
+        state = (OnGoing: tournament_state);
+        phase = t.phase + 1n
+    } in
+    let (league, _, _, _, _, _) = t.def in
+    let create_fight (op,(a,b): operation list * (fighter_id * fighter_id)): operation list =
+        (Tezos.transaction (CreateFight (a,b,round_amount,(league,NoStake,NoReward),round_duration)) 0tez (Tezos.get_contract d.fight_addr))::op in
+    let op = Set.fold create_fight pairings [] in
+    let op = (Tezos.emit "%nextPhase" (id, t.phase: event_next_phase))::op in
+    op, { d with tournaments = Big_map.update id (Some t) d.tournaments }
+
+(** EndTournament entrypoint
+    After all the phases have been completed, this is called by the scheduler in order to provide
+    the ranks of the winners.
+    Each reward in the rewards list will be awarded to the respective rank in the ranks list.
+    @caller scheduler
+    @event endedTournament tournament_id
+*)
+let end_tournament (id, ranks, d: tournament_id * fighter_id list * tournament_storage) =
+    let _ = _scheduler_only d in
+    let t = _get_tournament_data (id,d) in
+    let _ = if t.state <> (OnGoing: tournament_state) then failwith ERROR.end_not_ongoing in
+    let _ = if Set.cardinal t.pending_fights <> 0n then failwith ERROR.pending_fights in
+    let t = { t with state = (Finished: tournament_state); ranks = ranks } in
+    let (_, _, rewards, _, _, _) = t.def in
+    let op = _grant_rewards (ranks, rewards, d) in
+    let op = (Tezos.transaction (SetFightersFree t.fighters) 0tez (Tezos.get_contract d.fighter_addr))::op in
+    let op = (Tezos.emit "%endedTournament" (id: event_ended_tournament))::op in
+    op, { d with 
+        tournaments = Big_map.update id (Some t) d.tournaments;
+        active_tournaments = Set.remove id d.active_tournaments
+    }
+
+(** ReportFight entrypoint
+    This is called by the Fight contract to report the start or the end of a relevant fight
+    We then gather the results to update the scores
+    @caller Fight
+*)
+let report_fight (fid, d: fight_id * tournament_storage) =
+    let _ = if Tezos.get_sender () <> d.fight_addr then failwith ERROR.rights_other in
+    let f = _get_fight_data (fid,d) in
+    let t = _get_tournament_data (f.tournament,d) in
+    let t =
+        // We report the end of a fight
+        if f.state = (Finished: fight_state) then
+            let (sa,sb) = if f.result > 0 then (1,-1) else if f.result = 0 then (0,0) else (-1,1) in
+            let scores = t.scores in
+            let sa : int option = (match (Map.find_opt f.a scores) with
+                | Some k -> Some (k + sa)
+                | None -> Some sa ) in
+            let scores = Map.update f.a sa scores in
+            let sb : int option = (match (Map.find_opt f.b scores) with
+                | Some k -> Some (k + sb)
+                | None -> Some sb ) in
+            let scores = Map.update f.b sb scores in    
+            { t with 
+                pending_fights = Set.remove fid t.pending_fights;
+                scores = scores
+            }
+        // We report the start of a fight
+        else
+            { t with 
+                pending_fights = Set.add fid t.pending_fights;
+                fights = Set.add fid t.fights;
+            }
+        in
+    [], { d with tournaments = Big_map.update f.tournament (Some t) d.tournaments }
 
 
 (** Main function of the smart contract *)
@@ -183,11 +291,15 @@ let main (action, d: tournament_parameter * tournament_storage) =
     | SetTournamentFee value -> set_tournament_fee(value,d)
     | SetFighterAddr addr -> set_fighter_addr(addr,d)
     | SetFightAddr addr -> set_fight_addr(addr,d)
-    | CreateTournament (stake,stamp) -> create_tournament(stake,stamp,d)
+    | SetShopAddr addr -> set_shop_addr(addr,d)
+    | SetAttributeAddr addr -> set_attribute_addr(addr,d)
+    | CreateTournament (def,stamp) -> create_tournament(def,stamp,d)
     | CancelTournament id -> cancel_tournament(id,d)
     | JoinTournament (id,a) -> join_tournament(id,a,d)
-    | GenerateTree (id,seed) -> generate_tree(id,seed,d)
-    | NextPhase id -> next_phase(id,d)
+    | GenerateTree (id,metadata) -> generate_tree(id,metadata,d)
+    | NextPhase (id,pairings,ra,rd) -> next_phase(id,pairings,ra,rd,d)
+    | EndTournament (id,ranks) -> end_tournament(id,ranks,d)
+    | ReportFight fid -> report_fight(fid,d)
     | SinkFees addr -> sink_fees(addr,d)
     : (operation list * tournament_storage))
 

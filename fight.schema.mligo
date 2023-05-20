@@ -31,6 +31,7 @@ type fight_reward =
 type fight_queue = fight_league * fight_stake * fight_reward
 
 #include "fighter.schema.mligo"
+#include "tournament.schema.mligo"
 
 type fight_data = {
     id: fight_id;
@@ -43,6 +44,7 @@ type fight_data = {
     result: int;
     start_date: timestamp;
     round_duration: round_duration;
+    tournament: tournament_id;
     metadata: fight_metadata
 }
 
@@ -56,6 +58,7 @@ type fight_storage = {
     fighter_addr: address;
     attribute_addr: address;
     shop_addr: address;
+    tournament_addr: address;
     fights: (fight_id, fight_data) big_map;
     fights_by_fighter: (fighter_id, fight_id set) big_map;
     queues: (fight_queue, fighter_id set) big_map
@@ -70,6 +73,7 @@ type fight_parameter =
 | SetFighterAddr of address
 | SetAttributeAddr of address
 | SetShopAddr of address
+| SetTournamentAddr of address
 | CreateFight of fighter_id * fighter_id * round_amount * fight_queue * round_duration
 | ResolveRound of fight_id * nat * int * round_data
 | SetStrategy of fight_id * fighter_id * strategy_data

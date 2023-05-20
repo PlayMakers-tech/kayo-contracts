@@ -205,6 +205,23 @@ let set_fighter_state (id,fight,tournament,queue,d:
             }) d.fighters
     }
 
+
+(** Set the combat state of a fighter list to free
+    @caller manager
+*)
+let set_fighters_free (ids,d: fighter_id set * fighter_storage) =
+    let _ = _manager_only d in
+    let free (dd, id : fighter_storage * fighter_id) : fighter_storage =
+        let f  = _get_fighter_data (id, dd) in
+        { dd with fighters = Big_map.update id 
+            (Some { f with 
+                fight = 0n;
+                tournament = 0n;
+                queue = None
+            }) dd.fighters
+        } in
+    [], Set.fold free ids d
+
 (** Fusion entrypoint
     Note that this only requests a fusion, reserve its id, and disable the parents
     TODO The fusion needs to be reworked (maybe)
@@ -312,10 +329,11 @@ let main (action, d: fighter_parameter * fighter_storage) =
     | SetAbilityAddr addr -> set_ability_addr(addr,d)
     | SetShopAddr addr -> set_shop_addr(addr,d)
     | Fusion (father,mother) -> fusion(father,mother,d)
-    | SetFighterListed (id,state) -> set_fighter_listed(id,state,d)
     | Transfer (id,addr) -> transfer(id,addr,d)
     | SetName (id,name) -> set_name(id,name,d)
     | SetFighterState (id,fight,tournament,queue) -> set_fighter_state(id,fight,tournament,queue,d)
+    | SetFighterListed (id,state) -> set_fighter_listed(id,state,d)
+    | SetFightersFree (ids) -> set_fighters_free(ids,d)
     | SinkFees addr -> sink_fees(addr,d)
     : (operation list * fighter_storage))
 

@@ -50,6 +50,7 @@ type fighter_parameter =
 | RealMint of fighter_id * bytes * (ability_id list)
 | SetFighterListed of fighter_id * bool
 | SetFighterState of fighter_id * fight_id * tournament_id * (fight_queue option)
+| SetFightersFree of fighter_id set
 | SinkFees of address
 // User entrypoints:
 | Mint

@@ -58,8 +58,10 @@ module ERROR =
 	let cancel_not_open = "Can only cancel open tournaments"
 	let join_not_open   = "Can only join open tournaments"
 	let close_not_open  = "Can only close open tournaments"
-	let pending_fights  = "Pending fights"
+	let pending_fights  = "Some fights are still pending"
 	let cant_start_next_phase = "Can't start next phase of this tournament"
+	let end_not_ongoing = "Can only end ongoing tournament"
+	let not_enough_participants = "Not enough participants registered"
 
 	let wrong_proba_skin = "Issue with probabilities in skin_nodes/leaves setup"
 

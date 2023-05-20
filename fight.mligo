@@ -62,6 +62,7 @@ let _get_fights_by_fighter (id, d: fighter_id * fight_storage): fight_id set =
     @call Fighter SetFighterState
     @call Fighter Transfer
     @call Attribute EarnXP
+    @call Tournament ReportFight
 *)
 let _resolve_fight (id, event, d: fight_id * operation * fight_storage) =
 	let f = _get_fight_data (id,d) in
@@ -76,8 +77,8 @@ let _resolve_fight (id, event, d: fight_id * operation * fight_storage) =
     let (_league, _stake, reward) = f.queue in
     let op = (match reward with
     | TezReward v -> 
-    	if f.result > 0 then (Tezos.transaction unit (2n*v) (Tezos.get_contract fa.owner))::op
-    	else if f.result < 0 then (Tezos.transaction unit (2n*v) (Tezos.get_contract fb.owner))::op
+    	if f.result > 0 then (Tezos.transaction unit v (Tezos.get_contract fa.owner))::op
+    	else if f.result < 0 then (Tezos.transaction unit v (Tezos.get_contract fb.owner))::op
     	else (Tezos.transaction unit v (Tezos.get_contract fa.owner))::
     		 (Tezos.transaction unit v (Tezos.get_contract fb.owner))::op
     | FighterReward ->
@@ -103,7 +104,10 @@ let _resolve_fight (id, event, d: fight_id * operation * fight_storage) =
     let op =
     	(Tezos.transaction (EarnXP (f.a,xpa)) 0tez (Tezos.get_contract d.attribute_addr))::
     	(Tezos.transaction (EarnXP (f.b,xpb)) 0tez (Tezos.get_contract d.attribute_addr))::
-     	op in    
+     	op in
+    // If we are in a tournament, we report it
+    let op = if fa.tournament = 0n then op else
+        (Tezos.transaction (ReportFight id) 0tez (Tezos.get_contract d.tournament_addr))::op in
     let d = { d with fights = Big_map.update id (Some f) d.fights } in
     event::op, d
 
@@ -164,6 +168,13 @@ let set_shop_addr (addr, d : address * fight_storage) =
     let _ = _admin_only d in
     [], {d with shop_addr = addr}
 
+(** Set the address of the Tournament smart contract
+    @caller admin
+*)
+let set_tournament_addr (addr, d : address * fight_storage) =
+    let _ = _admin_only d in
+    [], {d with tournament_addr = addr}
+
 (** SinkFees entrypoint
     Allow the admin to retrieve the funds stored on the contract
     TODO Should only take out the fees, not the full balance with rewards
@@ -175,8 +186,8 @@ let sink_fees (addr, d: address * fight_storage) =
 
 
 (** Initializing a new fight object with default values *)
-let new_fight (id, a, b, round_cnt, queue, round_duration:
-        fight_id * fighter_id * fighter_id * round_amount * fight_queue * round_duration) : fight_data =
+let new_fight (id, a, b, round_cnt, queue, round_duration, tournament:
+        fight_id * fighter_id * fighter_id * round_amount * fight_queue * round_duration * tournament_id) : fight_data =
     ({
         id = id;
         a = a;
@@ -188,7 +199,8 @@ let new_fight (id, a, b, round_cnt, queue, round_duration:
         result = 0;
         metadata = 0x00;
         start_date = Tezos.get_now ();
-        round_duration = round_duration
+        round_duration = round_duration;
+        tournament = tournament
     } : fight_data)
 
 (** CreateFight entrypoint
@@ -198,28 +210,32 @@ let new_fight (id, a, b, round_cnt, queue, round_duration:
     @event newRound (fight_id, fighter_id, fighter_id, round, deadline)
 *)
 let create_fight (a, b, round_cnt, queue, round_duration, d: 
-		fighter_id * fighter_id * round_amount * fight_queue * round_duration * fight_storage) =
+        fighter_id * fighter_id * round_amount * fight_queue * round_duration * fight_storage) =
     let _ = _matcher_only d in
     let fa = _get_fighter_data (a,d) in
     let _ = if (fa.listed || fa.fight>0n) then failwith ERROR.unavailable_fighter "a" in
     let fb = _get_fighter_data (b,d) in
     let _ = if (fb.listed || fb.fight>0n) then failwith ERROR.unavailable_fighter "b" in
-    let _ = if (fa.queue <> Some queue || fb.queue <> Some queue) then failwith ERROR.different_queue in
+    let _ = if (fa.queue <> Some queue || fb.queue <> Some queue) &&
+               (fa.tournament = 0n || fa.tournament <> fb.tournament) then failwith ERROR.different_queue in
     let queue_set = _get_fighters_in_queue (queue,d) in
     let fbfa = Set.add d.next_id (_get_fights_by_fighter (a, d)) in
     let fbfb = Set.add d.next_id (_get_fights_by_fighter (b, d)) in
     let fbf = d.fights_by_fighter in
     let fbf = Big_map.update a (Some fbfa) fbf in
     let fbf = Big_map.update b (Some fbfb) fbf in
-	[Tezos.transaction (SetFighterState (a,d.next_id,fa.tournament,None)) 0tez (Tezos.get_contract d.fighter_addr);
-	 Tezos.transaction (SetFighterState (b,d.next_id,fb.tournament,None)) 0tez (Tezos.get_contract d.fighter_addr);
-     Tezos.emit "%newRound" ((d.next_id, a, b, 1n, (Tezos.get_now ()) + round_duration): event_new_round)],
-	{ d with 
+    let op = [Tezos.transaction (SetFighterState (a,d.next_id,fa.tournament,None)) 0tez (Tezos.get_contract d.fighter_addr);
+         Tezos.transaction (SetFighterState (b,d.next_id,fb.tournament,None)) 0tez (Tezos.get_contract d.fighter_addr);
+         Tezos.emit "%newRound" ((d.next_id, a, b, 1n, (Tezos.get_now ()) + round_duration): event_new_round)] in
+    // If we are in a tournament, we report it
+    let op = if fa.tournament = 0n then op else
+        (Tezos.transaction (ReportFight d.next_id) 0tez (Tezos.get_contract d.tournament_addr))::op in
+    op, { d with 
         next_id = d.next_id + 1n;
-        fights = Big_map.add d.next_id (new_fight (d.next_id, a, b, round_cnt, queue, round_duration)) d.fights;
+        fights = Big_map.add d.next_id (new_fight (d.next_id, a, b, round_cnt, queue, round_duration, fa.tournament)) d.fights;
         fights_by_fighter = fbf;
         queues = Big_map.update queue (Some (Set.remove b (Set.remove a queue_set))) d.queues
-	}
+    }
 
 (** ResolveRound entrypoint
     Set the result of the round of a fight, with relevant data
@@ -299,7 +315,7 @@ let cancel_queue (a, d: fighter_id * fight_storage) =
     let _ = if Tezos.get_sender () <> fa.owner then failwith ERROR.rights_owner in
     let queue = Option.unopt_with_error fa.queue ERROR.not_in_queue in
     let (_, stake, _) = queue in
-    let op = [Tezos.transaction (SetFighterState (a,0n,0n,None)) 0tez (Tezos.get_contract d.fighter_addr)] in
+    let op = [Tezos.transaction (SetFightersFree (Set.literal [a])) 0tez (Tezos.get_contract d.fighter_addr)] in
 	let op = (match stake with
         | TezStake v -> (Tezos.transaction unit v (Tezos.get_contract fa.owner))::op
         | ItemStake (item,qty) -> (Tezos.transaction (GrantItem (item,qty,fa.owner)) 0tez (Tezos.get_contract d.shop_addr))::op
@@ -319,6 +335,7 @@ let main (action, d: fight_parameter * fight_storage) =
     | SetFighterAddr addr -> set_fighter_addr(addr,d)
     | SetAttributeAddr addr -> set_attribute_addr(addr,d)
     | SetShopAddr addr -> set_shop_addr(addr,d)
+    | SetTournamentAddr addr -> set_tournament_addr(addr,d)
     | CreateFight (a,b,round_cnt,queue,round_duration) -> create_fight(a,b,round_cnt,queue,round_duration,d)
     | ResolveRound (id,round,result,data) -> resolve_round(id,round,result,data,d)
     | SetStrategy (id,a,data) -> set_strategy(id,a,data,d)

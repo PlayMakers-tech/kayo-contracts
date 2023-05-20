@@ -9,6 +9,7 @@ let init_store: fight_storage = {
     fighter_addr = ("tz3QE72w1vC613ZaeAZwW5fxwrBUQAstyaZy": address);
     attribute_addr = ("tz3QE72w1vC613ZaeAZwW5fxwrBUQAstyaZy": address);
     shop_addr = ("tz3QE72w1vC613ZaeAZwW5fxwrBUQAstyaZy": address);
+    tournament_addr = ("tz3QE72w1vC613ZaeAZwW5fxwrBUQAstyaZy": address);
     fights = Big_map.empty;
     fights_by_fighter = Big_map.empty;
     queues = Big_map.empty
