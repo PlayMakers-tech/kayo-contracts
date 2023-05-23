@@ -24,8 +24,7 @@ type event_bought_item = shop_item * nat * address // boughtItem
 type event_bought_bundle = shop_bundle * nat * address // boughtBundle
 // Tournament event
 type event_new_tournament = tournament_id * tournament_def * timestamp  // newTournament
-type event_joined_tournament = tournament_id * fighter_id // joinTournament
+type event_joined_tournament = tournament_id * fighter_id // joinedTournament
 type event_generate_tree = tournament_id * tournament_metadata // generateTree
 type event_next_phase = tournament_id * nat // nextPhase
 type event_ended_tournament = tournament_id // endedTournament
-

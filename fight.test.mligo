@@ -2,13 +2,6 @@
 #include "event.mligo"
 
 let test =
-
-    let _ = Test.set_source admin_address in
-    // fighter_contract
-    let _ = Test.transfer_to_contract fighter_contract (SetAbilityAddr      ability_addr     ) 0tez in
-    let _ = Test.transfer_to_contract fighter_contract (SetAttributeAddr    attribute_addr   ) 0tez in
-    // marketfighter_contract
-    let _ = Test.transfer_to_contract marketfighter_contract (SetFighterAddr fighter_addr) 0tez in
     
     // fight_contract
     let _ = print_topic "SetFighterAddr" in
@@ -246,6 +239,6 @@ let test =
     // * TODO Check Queues, Stakes and Rewards * //
     let _ = print_topic "Stakes and rewards" in
     let _ = print_checkmark (false, true) in
-    let _ = print_step "TODO Should built the stakes and rewards tests" in
+    let _ = print_step "todo Should built the stakes and rewards tests" in
     
     ()

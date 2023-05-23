@@ -49,16 +49,6 @@ let test_entrypoint (name : string) (a : test_exec_result) (expected : bool) =
       let _ = Test.log err in
       0n
 
-let get_fighter_data (id,d: fighter_id * fighter_storage) =
-    Option.unopt_with_error (Big_map.find_opt id d.fighters) "Invalid fighter_id"
-let get_fight_data (id,d: fight_id * fight_storage) =
-    Option.unopt_with_error (Big_map.find_opt id d.fights) "Invalid fight_id"
-let get_fighter_abilities (id,d: fighter_id * ability_storage) =
-    Option.unopt_with_error (Big_map.find_opt id d.fighter_abilities) "Invalid fighter_id"
-let get_attribute_data (id, d: fighter_id * attribute_storage) =
-    Option.unopt_with_error (Big_map.find_opt id d.attributes) "Invalid fighter_id"
-
-
 //************* Declaration of contracts and their variables *************//
 let _ = Test.set_source admin_address
 
@@ -247,6 +237,8 @@ let _ = Test.transfer_to_contract fighter_contract (SetManagers (Set.literal [ma
 let _ = Test.transfer_to_contract fight_contract   (SetManagers (Set.literal [manager_address;tournament_addr])) 0tez
 let _ = Test.transfer_to_contract shop_contract    (SetManagers (Set.literal [manager_address;fight_addr;tournament_addr])) 0tez
 
+let _ = Test.set_source manager_address
+let _ = Test.transfer_to_contract fight_contract   (SetMatchers (Set.literal [matcher_address;tournament_addr])) 0tez
 
 // Create abilities
 let rl : rarity list =
@@ -260,4 +252,3 @@ let _ =
     | Success _ -> true
     | Fail err -> Test.failwith err )
     |> Test.assert 
-

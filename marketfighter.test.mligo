@@ -1,12 +1,9 @@
-#include "test.utils.mligo"
 #include "event.mligo"
+#include "test.utils.mligo"
 
 let test =
 
-    let _ = Test.transfer_to_contract fighter_contract (SetAbilityAddr      ability_addr     ) 0tez in
-    let _ = Test.transfer_to_contract fighter_contract (SetAttributeAddr    attribute_addr   ) 0tez in
-    let _ = Test.transfer_to_contract fight_contract   (SetAttributeAddr    attribute_addr   ) 0tez in
-
+    // Marketfighter contract
     let _ = print_topic ("SetFighterAddr") in
     let _ = test_marketfighter "Should not allow user to use SetFighterAddr entrypoint"  (alice_address, SetFighterAddr fighter_addr, 0tez) false in
     let _ = test_marketfighter "Should allow admin to use SetFighterAddr entrypoint"     (admin_address, SetFighterAddr fighter_addr, 0tez) true in
@@ -35,7 +32,7 @@ let test =
     // ******************** SetMarketOpen test ******************** // 
     let _ = print_topic "SetMarketOpen" in 
 
-    let _ = test_marketfighter "Should allow user to close the market" (alice_address, (SetMarketOpen false), 0tez) false in
+    let _ = test_marketfighter "Should not allow user to close the market" (alice_address, (SetMarketOpen false), 0tez) false in
 
     let _ = test_marketfighter "Should allow admin to close the market" (admin_address, (SetMarketOpen false), 0tez) true in
 
@@ -226,8 +223,11 @@ let test =
     // ******************** SetMinPrice test ******************** //
     let _ = print_topic "SetMinPrice" in
 
+    // Protect the test from baker problem
+    let _ = Test.set_baker bob_address in
+
     let _ = test_marketfighter "Should not allow user to use SetMinPrice" (alice_address,  SetMinPrice 20tez, 0tez) false in
-    
+
     let _ = test_marketfighter "Should not allow admin to use SetMinPrice" (admin_address,  SetMinPrice 20tez, 0tez) false in
 
     let _ = test_marketfighter "Should allow manager to use SetMinPrice" (manager_address,  SetMinPrice 20tez, 0tez) true in
@@ -238,7 +238,7 @@ let test =
 
     // ******************** SinkFees test ******************** //
     let _ = print_topic "SinkFees" in
-
+ 
     let _ = test_marketfighter "Should not allow user to use SinkFees" (alice_address,  SinkFees alice_address, 0tez) false in
 
     let _ = test_marketfighter "Should allow admin to use SinkFees" (admin_address,  SinkFees alice_address, 0tez) true in

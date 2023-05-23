@@ -15,10 +15,6 @@ let test =
     let _ = test_fighter "Should not allow user to use SetShopAddr entrypoint"  (alice_address, SetShopAddr shop_addr, 0tez) false in
     let _ = test_fighter "Should allow admin to use SetShopAddr entrypoint"     (admin_address, SetShopAddr shop_addr, 0tez) true in
 
-    let _ = print_topic "SetAttributeAddr (fight_contract)" in
-    let _ = test_fight "Should not allow user to use SetAttributeAddr entrypoint"  (alice_address, SetAttributeAddr attribute_addr, 0tez) false in
-    let _ = test_fight "Should allow admin to use SetAttributeAddr entrypoint"     (admin_address, SetAttributeAddr attribute_addr, 0tez) true in
-
     // ******************** Mint test ******************** // 
     let _ = print_topic "Mint" in
 
