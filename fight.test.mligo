@@ -68,16 +68,16 @@ let test =
     let _ = test_fight "Should not allow the user to AddToQueue a fighter when the fighter is on sale" (alice_address, (AddToQueue (token3, default_queue)), fight_fee) false in
     let _ = Test.transfer_to_contract marketfighter_contract (Cancel token3) 0tez in
 
-    let _ = Test.set_source admin_address in
+    let _ = Test.set_source manager_address in
     let _ = Test.transfer_to_contract fighter_contract (SetFighterState (token3, 0n, 1n, None)) 0tez in
     let _ = test_fight "Should not allow the user to AddToQueue a fighter in tournament" (alice_address, (AddToQueue (token3, default_queue)), fight_fee) false in
-    
+
     let _ = test_fight "Should not allow the user to AddToQueue a fighter in queue" (alice_address, (AddToQueue (token1, default_queue)), fight_fee) false in
 
-    let _ = Test.set_source admin_address in
+    let _ = Test.set_source manager_address in
     let _ = Test.transfer_to_contract fighter_contract (SetFighterState (token3, 1n, 0n, None)) 0tez in
     let _ = test_fight "Should not allow the user to AddToQueue a fighter in fight" (alice_address, (AddToQueue (token3, default_queue)), fight_fee) false in
-    let _ = Test.set_source admin_address in
+    let _ = Test.set_source manager_address in
     let _ = Test.transfer_to_contract fighter_contract (SetFighterState (token3, 0n, 0n, None)) 0tez in
 
     let _ = Test.set_source alice_address in
