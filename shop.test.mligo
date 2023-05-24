@@ -3,6 +3,23 @@
 
 let test =
 
+    // *********** SetAdmin *********** //
+
+    let _ = print_topic "Set the admin" in
+
+    let _ = test_shop "Should not allow user to set admin" (alice_address, (SetAdmins (Set.literal [admin_address])), 0tez) false in
+
+    let _ = test_shop "Should allow admin to set admin" (admin_address, (SetAdmins (Set.literal [admin_address])), 0tez) true in
+
+
+    // *********** SetManager *********** //
+
+    let _ = print_topic "Set the managers" in
+
+    let _ = test_shop "Should not allow user to set managers" (alice_address, (SetManagers (Set.literal [manager_address;fight_addr;tournament_addr])), 0tez) false in
+
+    let _ = test_shop "Should allow admin to set managers" (admin_address, (SetManagers (Set.literal [manager_address;fight_addr;tournament_addr])), 0tez) true in
+
     // *********** Create items ***********
     let _ = print_topic "Create items" in
 

@@ -13,26 +13,24 @@ let minter_address    : address = Test.nth_bootstrap_account 4
 let matcher_address   : address = Test.nth_bootstrap_account 5
 let resolver_address  : address = Test.nth_bootstrap_account 6
 let scheduler_address : address = Test.nth_bootstrap_account 7
-
-let dummy_address = ("tz3QE72w1vC613ZaeAZwW5fxwrBUQAstyaZy" : address)
+let dummy_address     : address = ("tz3QE72w1vC613ZaeAZwW5fxwrBUQAstyaZy" : address)
 
 let mint_fee       = 10tez
 let fight_fee      = 0.5tez
 let tournament_fee = 0.7tez
 let fusion_fee     = 20tez
 let listing_fee    = 0.1tez
-
 let min_listing_price = 8tez
-
 let default_queue : fight_queue = ("League", NoStake, NoReward)
-
+let stake_queue   : fight_queue = ("Stake league", (TezStake 10tez), NoReward)
+ 
 //************* Declaration of functions *************//
 let print_checkmark (given, expected : bool * bool) =
   Test.print (if given = expected then "ok" else "not ok")
 
-let print_step (toPrint : string) = Test.println (" - " ^ toPrint)
+let print_step (toPrint : string)  = Test.println (" - " ^ toPrint)
 
-let print_topic (toPrint : string) = Test.println ("# " ^ toPrint)
+let print_topic (toPrint : string) = Test.println ("# "  ^ toPrint)
 
 let test_entrypoint (name : string) (a : test_exec_result) (expected : bool) =
   match a with
@@ -52,82 +50,10 @@ let test_entrypoint (name : string) (a : test_exec_result) (expected : bool) =
 //************* Declaration of contracts and their variables *************//
 let _ = Test.set_source admin_address
 
-// Fighter contract
-let init_store_fighter : fighter_storage = {
-    admins = Set.literal [admin_address];
-    managers = Set.literal [manager_address];
-    minters = Set.literal [minter_address];
-    next_id = 1n;
-    mint_fee = mint_fee;
-    fusion_fee = fusion_fee;
-    attribute_addr = dummy_address;
-    ability_addr = dummy_address;
-    marketfighter_addr = dummy_address;
-    shop_addr = dummy_address;
-    mints = Set.empty;
-    fighters = Big_map.empty;
-    fighters_by_owner = Big_map.empty
-}
-let fighter_addr, _, _ = Test.originate_from_file "fighter.mligo" "main" [] (Test.eval init_store_fighter) 0tez
-let fighter_typed_addr: (fighter_parameter, fighter_storage) typed_address = Test.cast_address fighter_addr
-let fighter_contract = Test.to_contract fighter_typed_addr
-
-let test_fighter (name : string) (addr, op, amount : address * fighter_parameter * tez) (expected : bool) =
-  let _ = Test.set_source addr in
-  test_entrypoint name (Test.transfer_to_contract fighter_contract op amount) expected
-
-// Fight contract
-let init_store_fight : fight_storage = {
-    admins = Set.literal [admin_address];
-    managers = Set.literal [manager_address];
-    matchers = Set.literal [matcher_address];
-    resolvers = Set.literal [resolver_address];
-    next_id = 1n;
-    fight_fee = fight_fee;
-    fighter_addr = (fighter_addr: address);
-    tournament_addr = dummy_address;
-    attribute_addr = dummy_address;
-    shop_addr = dummy_address;
-    fights = Big_map.empty;
-    fights_by_fighter = Big_map.empty;
-    queues = Big_map.empty
-}
-let fight_addr, _, _ = Test.originate_from_file "fight.mligo" "main" [] (Test.eval init_store_fight) 0tez
-let fight_typed_addr: (fight_parameter, fight_storage) typed_address = Test.cast_address fight_addr
-let fight_contract = Test.to_contract fight_typed_addr
-
-
-let test_fight (name : string) (addr, op, amount : address * fight_parameter * tez) (expected : bool) =
-  let _ = Test.set_source addr in
-  test_entrypoint name (Test.transfer_to_contract fight_contract op amount) expected
-
-// Tournament contract
-let init_store_tournament : tournament_storage = {
-    admins = Set.literal [admin_address];
-    managers = Set.literal [manager_address];
-    schedulers = Set.literal [scheduler_address];
-    next_id = 1n;
-    tournament_fee = tournament_fee;
-    fight_addr = (fight_addr: address);
-    fighter_addr = (fighter_addr: address);
-    attribute_addr = dummy_address;
-    shop_addr = dummy_address;
-    active_tournaments = Set.empty;
-    tournaments = Big_map.empty;
-}
-let tournament_addr, _, _ = Test.originate_from_file "tournament.mligo" "main" [] (Test.eval init_store_tournament) 0tez
-let tournament_typed_addr: (tournament_parameter, tournament_storage) typed_address = Test.cast_address tournament_addr
-let tournament_contract = Test.to_contract tournament_typed_addr
-
-
-let test_tournament (name : string) (addr, op, amount : address * tournament_parameter * tez) (expected : bool) =
-  let _ = Test.set_source addr in
-  test_entrypoint name (Test.transfer_to_contract tournament_contract op amount) expected
-
 // Ability contract
 let init_store_ability: ability_storage = {
     admins = Set.literal [admin_address];
-    managers = Set.literal [manager_address;(fighter_addr: address)];
+    managers = Set.literal [manager_address];
     next_id = 1n;
     available_abilities = Big_map.literal [
         (Common,    (Set.empty: ability_id set));
@@ -159,7 +85,7 @@ let test_ability (name : string) (addr, op, amount : address * ability_parameter
 // Attribute contract
 let init_store_attribute: attribute_storage = {
     admins = Set.literal [admin_address];
-    managers = Set.literal [manager_address;(fighter_addr: address);(fight_addr: address);(tournament_addr: address)];
+    managers = Set.literal [manager_address];
     skin_nodes = (1n, [(0x10,1n,1n)]);
     skin_leaves = (1n, [(0x00,2n,1n)]);
     attributes = Big_map.empty
@@ -171,6 +97,30 @@ let attribute_contract = Test.to_contract attribute_typed_addr
 let test_attribute (name : string) (addr, op, amount : address * attribute_parameter * tez) (expected : bool) =
   let _ = Test.set_source addr in
   test_entrypoint name (Test.transfer_to_contract attribute_contract op amount) expected
+
+// Fighter contract
+let init_store_fighter : fighter_storage = {
+    admins = Set.literal [admin_address];
+    managers = Set.literal [manager_address];
+    minters = Set.literal [minter_address];
+    next_id = 1n;
+    mint_fee = mint_fee;
+    fusion_fee = fusion_fee;
+    attribute_addr = (attribute_addr: address);
+    ability_addr = (ability_addr: address);
+    marketfighter_addr = (dummy_address : address);
+    shop_addr = (dummy_address : address);
+    mints = Set.empty;
+    fighters = Big_map.empty;
+    fighters_by_owner = Big_map.empty
+}
+let fighter_addr, _, _ = Test.originate_from_file "fighter.mligo" "main" [] (Test.eval init_store_fighter) 0tez
+let fighter_typed_addr: (fighter_parameter, fighter_storage) typed_address = Test.cast_address fighter_addr
+let fighter_contract = Test.to_contract fighter_typed_addr
+
+let test_fighter (name : string) (addr, op, amount : address * fighter_parameter * tez) (expected : bool) =
+  let _ = Test.set_source addr in
+  test_entrypoint name (Test.transfer_to_contract fighter_contract op amount) expected
 
 // Marketfighter contract
 let init_store_marketfighter: marketfighter_storage = {
@@ -193,10 +143,56 @@ let test_marketfighter (name : string) (addr, op, amount : address * marketfight
   let _ = Test.set_source addr in
   test_entrypoint name (Test.transfer_to_contract marketfighter_contract op amount) expected
 
+// Tournament contract
+let init_store_tournament : tournament_storage = {
+    admins = Set.literal [admin_address];
+    managers = Set.literal [manager_address];
+    schedulers = Set.literal [scheduler_address];
+    next_id = 1n;
+    tournament_fee = tournament_fee;
+    fight_addr = (dummy_address: address);
+    fighter_addr = (fighter_addr: address);
+    attribute_addr = (attribute_addr: address);
+    shop_addr = (dummy_address: address);
+    active_tournaments = Set.empty;
+    tournaments = Big_map.empty;
+}
+let tournament_addr, _, _ = Test.originate_from_file "tournament.mligo" "main" [] (Test.eval init_store_tournament) 0tez
+let tournament_typed_addr: (tournament_parameter, tournament_storage) typed_address = Test.cast_address tournament_addr
+let tournament_contract = Test.to_contract tournament_typed_addr
+
+let test_tournament (name : string) (addr, op, amount : address * tournament_parameter * tez) (expected : bool) =
+  let _ = Test.set_source addr in
+  test_entrypoint name (Test.transfer_to_contract tournament_contract op amount) expected
+
+// Fight contract
+let init_store_fight : fight_storage = {
+    admins = Set.literal [admin_address];
+    managers = Set.literal [manager_address;(tournament_addr: address)];
+    matchers = Set.literal [matcher_address;(tournament_addr: address)];
+    resolvers = Set.literal [resolver_address];
+    next_id = 1n;
+    fight_fee = fight_fee;
+    fighter_addr = (fighter_addr: address);
+    tournament_addr = (tournament_addr: address);
+    attribute_addr = (attribute_addr: address);
+    shop_addr = (dummy_address: address);
+    fights = Big_map.empty;
+    fights_by_fighter = Big_map.empty;
+    queues = Big_map.empty
+}
+let fight_addr, _, _ = Test.originate_from_file "fight.mligo" "main" [] (Test.eval init_store_fight) 0tez
+let fight_typed_addr: (fight_parameter, fight_storage) typed_address = Test.cast_address fight_addr
+let fight_contract = Test.to_contract fight_typed_addr
+
+let test_fight (name : string) (addr, op, amount : address * fight_parameter * tez) (expected : bool) =
+  let _ = Test.set_source addr in
+  test_entrypoint name (Test.transfer_to_contract fight_contract op amount) expected
+
 // Shop contract
 let init_store_shop : shop_storage = {
     admins = Set.literal [admin_address];
-    managers = Set.literal [manager_address];
+    managers = Set.literal [manager_address;fight_addr;tournament_addr];
     is_open = true;
     items = Map.literal [
         "fighter1", {
@@ -219,28 +215,27 @@ let shop_addr, _, _ = Test.originate_from_file "shop.mligo" "main" [] (Test.eval
 let shop_typed_addr: (shop_parameter, shop_storage) typed_address = Test.cast_address shop_addr
 let shop_contract = Test.to_contract shop_typed_addr
 
-
 let test_shop (name : string) (addr, op, amount : address * shop_parameter * tez) (expected : bool) =
   let _ = Test.set_source addr in
   test_entrypoint name (Test.transfer_to_contract shop_contract op amount) expected
 
-// Set missing rights
-let _ = Test.set_source admin_address
-let _ = Test.transfer_to_contract fighter_contract (SetAbilityAddr       ability_addr       ) 0tez
-let _ = Test.transfer_to_contract fighter_contract (SetAttributeAddr     attribute_addr     ) 0tez
-let _ = Test.transfer_to_contract fighter_contract (SetMarketfighterAddr marketfighter_addr ) 0tez
-let _ = Test.transfer_to_contract fighter_contract (SetShopAddr          shop_addr          ) 0tez
-let _ = Test.transfer_to_contract fight_contract   (SetAttributeAddr     attribute_addr     ) 0tez
-let _ = Test.transfer_to_contract fight_contract   (SetShopAddr          shop_addr          ) 0tez
-let _ = Test.transfer_to_contract fight_contract   (SetTournamentAddr    tournament_addr    ) 0tez
-let _ = Test.transfer_to_contract tournament_contract (SetAttributeAddr  attribute_addr     ) 0tez
-let _ = Test.transfer_to_contract tournament_contract (SetShopAddr       shop_addr          ) 0tez
-let _ = Test.transfer_to_contract fighter_contract (SetManagers (Set.literal [manager_address;fight_addr;tournament_addr;marketfighter_addr])) 0tez
-let _ = Test.transfer_to_contract fight_contract   (SetManagers (Set.literal [manager_address;tournament_addr])) 0tez
-let _ = Test.transfer_to_contract shop_contract    (SetManagers (Set.literal [manager_address;fight_addr;tournament_addr])) 0tez
+// Set missing rights for ability
+let _ = Test.transfer_to_contract ability_contract (SetManagers (Set.literal [manager_address;(fighter_addr: address)])) 0tez
 
-let _ = Test.set_source manager_address
-let _ = Test.transfer_to_contract fight_contract   (SetMatchers (Set.literal [matcher_address;tournament_addr])) 0tez
+// Set missing rights for attribute
+let _ = Test.transfer_to_contract attribute_contract (SetManagers (Set.literal [manager_address;(fighter_addr: address);(fight_addr: address);(tournament_addr: address)])) 0tez
+
+// Set missing rights for fighter
+let _ = Test.transfer_to_contract fighter_contract (SetShopAddr          shop_addr          ) 0tez
+let _ = Test.transfer_to_contract fighter_contract (SetMarketfighterAddr marketfighter_addr ) 0tez
+let _ = Test.transfer_to_contract fighter_contract (SetManagers (Set.literal [manager_address;fight_addr;tournament_addr;marketfighter_addr])) 0tez
+
+// Set missing rights for tournament
+let _ = Test.transfer_to_contract tournament_contract (SetFightAddr      fight_addr         ) 0tez
+let _ = Test.transfer_to_contract tournament_contract (SetShopAddr       shop_addr          ) 0tez
+
+// Set missing rights for fight
+let _ = Test.transfer_to_contract fight_contract   (SetShopAddr          shop_addr          ) 0tez
 
 // Create abilities
 let rl : rarity list =

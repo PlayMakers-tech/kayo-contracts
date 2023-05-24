@@ -3,23 +3,32 @@
 
 let test =
 
-    // Marketfighter contract
+    // ******************** Init test ******************** //
     let _ = print_topic ("SetFighterAddr") in
     let _ = test_marketfighter "Should not allow user to use SetFighterAddr entrypoint"  (alice_address, SetFighterAddr fighter_addr, 0tez) false in
     let _ = test_marketfighter "Should allow admin to use SetFighterAddr entrypoint"     (admin_address, SetFighterAddr fighter_addr, 0tez) true in
 
+    let _ = print_topic ("SetAdmins") in
+    let _ = test_marketfighter "Should not allow user to use SetAdmins entrypoint"  (alice_address, SetAdmins (Set.literal [admin_address]), 0tez) false in
+    let _ = test_marketfighter "Should allow admin to use SetAdmins entrypoint"     (admin_address, SetAdmins (Set.literal [admin_address]), 0tez) true in
+
+    let _ = print_topic ("SetManagers") in
+    let _ = test_marketfighter "Should not allow user to use SetMinters entrypoint"  (alice_address, SetManagers (Set.literal [minter_address]), 0tez) false in
+    let _ = test_marketfighter "Should allow admin to use SetMinters entrypoint"     (admin_address, SetManagers (Set.literal [minter_address]), 0tez) true in
+
+    // ******************** Mint some fighter ******************** //
 
     let _ = Test.set_source alice_address in
     let _ =  Test.transfer_to_contract fighter_contract (Mint) mint_fee in
-    let token1 : fighter_id = 1n in
     let _ = Test.set_source bob_address in
     let _ =  Test.transfer_to_contract fighter_contract (Mint) mint_fee in
+    let _ = Test.set_source alice_address in
+    let _ =  Test.transfer_to_contract fighter_contract (Mint) mint_fee in
+    let _ =  Test.transfer_to_contract fighter_contract (Mint) mint_fee in
+    
+    let token1 : fighter_id = 1n in
     let token2 : fighter_id = 2n in
-    let _ = Test.set_source alice_address in
-    let _ =  Test.transfer_to_contract fighter_contract (Mint) mint_fee in
     let token3 : fighter_id = 3n in
-    let _ = Test.set_source alice_address in
-    let _ =  Test.transfer_to_contract fighter_contract (Mint) mint_fee in
     let token4 : fighter_id = 4n in
 
     let _ = Test.set_source minter_address in
@@ -40,6 +49,7 @@ let test =
     let _ = print_checkmark (d.is_open = false, true) in
     let _ = print_step "Market is closed in memory" in
 
+    // Source is already admin
     let _ = Test.transfer_to_contract marketfighter_contract (SetMarketOpen true) 0tez in
 
     // ******************** Buy test ******************** // 

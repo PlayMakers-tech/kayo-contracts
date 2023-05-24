@@ -3,46 +3,59 @@
 
 let test =
 
+    // ***************** SetFighterAddr *************** //
+
     let _ = print_topic "SetFighterAddr" in
     let _ = test_tournament "Should not allow user to use SetFighterAddr entrypoint"  (alice_address, SetFighterAddr fighter_addr, 0tez) false in
     let _ = test_tournament "Should allow admin to use SetFighterAddr entrypoint"     (admin_address, SetFighterAddr fighter_addr, 0tez) true in
 
+    // ***************** SetFightAddr *************** //
     let _ = print_topic "SetFightAddr" in
     let _ = test_tournament "Should not allow user to use SetFightAddr entrypoint"  (alice_address, SetFightAddr fight_addr, 0tez) false in
     let _ = test_tournament "Should allow admin to use SetFightAddr entrypoint"     (admin_address, SetFightAddr fight_addr, 0tez) true in
 
+    // ***************** SetAttributeAddr *************** //
     let _ = print_topic "SetAttributeAddr" in
     let _ = test_tournament "Should not allow user to use SetAttributeAddr entrypoint"  (alice_address, SetAttributeAddr attribute_addr, 0tez) false in
     let _ = test_tournament "Should allow admin to use SetAttributeAddr entrypoint"     (admin_address, SetAttributeAddr attribute_addr, 0tez) true in
 
+    // ***************** SetShopAddr *************** //
     let _ = print_topic "SetShopAddr" in
     let _ = test_tournament "Should not allow user to use SetShopAddr entrypoint"  (alice_address, SetShopAddr shop_addr, 0tez) false in
     let _ = test_tournament "Should allow admin to use SetShopAddr entrypoint"     (admin_address, SetShopAddr shop_addr, 0tez) true in
 
+    // ***************** SetAdmins *************** //
+    let _ = print_topic "SetAdmins" in
+    let _ = test_tournament "Should not allow user to use SetAdmins entrypoint"  (alice_address, SetAdmins (Set.literal [admin_address]), 0tez) false in
+    let _ = test_tournament "Should allow admin to use SetAdmins entrypoint"     (admin_address, SetAdmins (Set.literal [admin_address]), 0tez) true in
+
+    // ***************** SetManagers *************** //
+    let _ = print_topic "SetManagers" in
+    let _ = test_tournament "Should not allow user to use SetManagers entrypoint"  (alice_address, SetManagers (Set.literal [manager_address]), 0tez) false in
+    let _ = test_tournament "Should allow admin to use SetManagers entrypoint"     (admin_address, SetManagers (Set.literal [manager_address]), 0tez) true in
+
+    // ***************** Mint some fighters *************** //
 
     let _ = Test.set_source alice_address in
     let _ =  Test.transfer_to_contract fighter_contract (Mint) mint_fee in
-    let token1 : fighter_id = 1n in
     let _ = Test.set_source bob_address in
     let _ =  Test.transfer_to_contract fighter_contract (Mint) mint_fee in
-    let token2 : fighter_id = 2n in
     let _ = Test.set_source alice_address in
     let _ =  Test.transfer_to_contract fighter_contract (Mint) mint_fee in
-    let token3 : fighter_id = 3n in
+    let _ =  Test.transfer_to_contract fighter_contract (Mint) mint_fee in
+    let _ = Test.set_source bob_address in
+    let _ =  Test.transfer_to_contract fighter_contract (Mint) mint_fee in
     
-    let _ = Test.set_source alice_address in
-    let _ =  Test.transfer_to_contract fighter_contract (Mint) mint_fee in
-    let alice_token : fighter_id = 4n in
-    let _ = Test.set_source bob_address in
-    let _ =  Test.transfer_to_contract fighter_contract (Mint) mint_fee in
-    let bob_token : fighter_id = 5n in
+    let token1 : fighter_id = 1n in
+    let token2 : fighter_id = 2n in
+    let token3 : fighter_id = 3n in
+    let token4 : fighter_id = 4n in
 
     let _ = Test.set_source minter_address in
     let _ = Test.transfer_to_contract fighter_contract (RealMint (token1,0xfb0504030201fb0101010101,[4n;5n;6n])) 0tez in
     let _ = Test.transfer_to_contract fighter_contract (RealMint (token2,0xfb0604030201fb0101010101,[4n;5n;6n])) 0tez in
     let _ = Test.transfer_to_contract fighter_contract (RealMint (token3,0xfb1004030201fb0101010101,[1n;6n;7n])) 0tez in
-    let _ = Test.transfer_to_contract fighter_contract (RealMint (alice_token,0xfb1404030201fb0101010101,[1n;6n;7n])) 0tez in
-    let _ = Test.transfer_to_contract fighter_contract (RealMint (bob_token,0xfb1005030201fb0101010101,[1n;6n;7n])) 0tez in
+    let _ = Test.transfer_to_contract fighter_contract (RealMint (token4,0xfb1404030201fb0101010101,[1n;6n;7n])) 0tez in
 
     
     let ticket1 : shop_item_data = {
@@ -113,11 +126,10 @@ let test =
     let bal2 : tez = Test.get_balance alice_address in
 
     let _ = Test.set_source scheduler_address in
-    let _ = Test.transfer_to_contract tournament_contract (CancelTournament 2n) 0tez in
+    let _ = Test.transfer_to_contract_exn tournament_contract (CancelTournament 2n) 0tez in
 
     let bal3 : tez = Test.get_balance alice_address in
     
-    // TODO Better cond
     let cond = ((bal1 - bal2) < (bal1 - bal3)) in
     let _ = print_checkmark (cond, true) in
     let _ = print_step "Should test cancelling after fighters have joined (with stakes)" in
@@ -152,8 +164,8 @@ let test =
 
     let _ = Test.set_source alice_address in
     let _ = Test.transfer_to_contract fighter_contract (Mint) 20tez in
-    let token4 : fighter_id = 6n in
-    let _ = test_tournament "Should not allow user to use JoinTournament if the fighter is not fully minted" (alice_address, JoinTournament (3n, token4), 100tez) false in
+    let token5 : fighter_id = 5n in
+    let _ = test_tournament "Should not allow user to use JoinTournament if the fighter is not fully minted" (alice_address, JoinTournament (3n, token5), 100tez) false in
     
     let _ = Test.set_source manager_address in
     let _ = Test.transfer_to_contract_exn fighter_contract (SetFighterState (token1, 0n, 0n, None)) 0tez in
@@ -226,7 +238,7 @@ let test =
 
     let event : event_ended_tournament list = Test.get_last_events_from tournament_typed_addr "endedTournament" in
     let _ = match (List.head_opt event) with
-      | Some (id, phase) -> print_checkmark (id = 3n && phase = 1n, true)
+      | Some (id) -> print_checkmark (id = 3n, true)
       | None -> print_checkmark (false, true) in
     let _ = print_step "Should catch endedTournament event" in
     
@@ -275,7 +287,7 @@ let test =
 
     let fighter_str : fighter_storage = Test.get_storage_of_address fighter_addr |> Test.decompile in
     let alice_fighters = Big_map.find alice_address fighter_str.fighters_by_owner in
-    let _ = print_checkmark (alice_fighters = Set.literal([token1; token3; alice_token]), true) in
+    let _ = print_checkmark (alice_fighters = Set.literal([token1; token3; token4]), true) in
     let _ = print_step "Should not give new fighter to the tourn winner (FighterReward no effect in tournament)" in
 
     (* let tournament : tournament_storage = Test.get_storage_of_address tournament_addr |> Test.decompile in *)
@@ -283,7 +295,6 @@ let test =
     (* let _ = Test.log (tournament_4) in *)
     (* let shop_str : shop_storage = Test.get_storage_of_address shop_addr |> Test.decompile in *)
     (* let _ = Test.log shop_str in  *)
-
 
     // ***************** SinkFees *************** //
     let _ = print_topic "SinkFees" in
