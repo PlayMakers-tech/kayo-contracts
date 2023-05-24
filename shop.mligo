@@ -104,7 +104,9 @@ let grant_item (item,qty,addr,d: shop_item * nat * address * shop_storage) =
     let _ = if d.is_open = false then failwith ERROR.shop_closed in
     let _ = _manager_only d in
     let data = _get_item_data (item,d) in
-    let _ = if Tezos.get_amount () <> (data.price * qty) then failwith ERROR.price in
+    // Since Fight and Tournament call GrantItem, we comment the line below
+    // This is however a slight security right, since any Managers can Grant infinite items
+    //let _ = if Tezos.get_amount () <> (data.price * qty) then failwith ERROR.price in
     let _ = if data.quantity < qty then failwith ERROR.item_no_stock in
     let data = { data with quantity = abs ((int data.quantity) - (int qty)) } in
     let d = { d with items = Map.update item (Some data) d.items } in
