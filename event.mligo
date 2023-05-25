@@ -11,6 +11,7 @@ type event_strategy = fight_id * fighter_id * strategy_data // strategy
 type event_added_to_queue = fighter_id * fight_queue // addedToQueue
 // Fighter event
 type event_minting = fighter_id * (shop_item option) // minting
+type event_inactive = fighter_id // inactive
 type event_minted = fighter_id // minted
 type event_transfer = fighter_id * address * address // transfer
 // Marketfighter event

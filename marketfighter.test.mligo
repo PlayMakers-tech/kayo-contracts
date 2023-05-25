@@ -102,11 +102,9 @@ let test =
     let _ = Test.transfer_to_contract fighter_contract (SetFighterState (token1, 0n, 0n, Some default_queue)) 30tez in
     let _ = test_marketfighter "Should not allow user to sell a fighter in queue" (alice_address, Sell (token1, 10tez), listing_fee) false in
     
-    let _ = Test.set_source admin_address in
     let _ = Test.transfer_to_contract fighter_contract (SetFighterState (token1, 0n, 1n, None)) 30tez in
     let _ = test_marketfighter "Should not allow user to sell a fighter in tournament" (alice_address, Sell (token1, 10tez), listing_fee) false in
     
-    let _ = Test.set_source admin_address in
     let _ = Test.transfer_to_contract fighter_contract (SetFighterState (token1, 1n, 0n, None)) 30tez in
     let _ = test_marketfighter "Should not allow user to sell a fighter in fight" (alice_address, Sell (token1, 10tez), listing_fee) false in
 

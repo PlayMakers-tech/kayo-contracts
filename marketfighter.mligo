@@ -72,7 +72,7 @@ let set_managers (addrs, d : address set * marketfighter_storage) =
     [], {d with managers = addrs}
 
 (** Sell entrypoint
-    Set anf offer for sale, effectively listing a fighter
+    Set an offer for sale, effectively listing a fighter (potentially selling it right away)
     @caller owner
     @call Fighter SetFighterListed
     @event selling (fighter_id, tez)
@@ -109,8 +109,7 @@ let sell (id, price, d : fighter_id * tez * marketfighter_storage) =
     else transaction (id, price, f.owner, buyer, [], d)
 
 (** Buy entrypoint
-    Bid on a fighter (or directly buy it if the bid is higher than the current sale.
-    TODO case where the fighter is transferred to the buyer via another mean
+    Bid on a fighter (or directly buy it if the bid is higher than the current sale)
     @caller !owner
     @amount price
     @event buying fighter_id
@@ -119,6 +118,7 @@ let buy (id, price, d : fighter_id * tez * marketfighter_storage) =
     let _ = if Tezos.get_amount () <> price then failwith ERROR.price in
     let _ = if price < d.min_price then failwith ERROR.min_price in
     let f = _get_fighter_data (id,d) in
+    let _ = if f.inactive then failwith ERROR.inactive in
     let buyer = Tezos.get_sender () in
     let _ = if buyer = f.owner then failwith ERROR.already_owned in
     let (sold, sell_price) : bool * tez = (match (Big_map.find_opt id d.sells) with
@@ -146,9 +146,36 @@ let buy (id, price, d : fighter_id * tez * marketfighter_storage) =
             buys = Big_map.update id (Some buy_map) d.buys
         }
 
+(** Private function for Cancel and CancelFor *)
+let _cancel_buying (id, addr, fail_on_error, d: fighter_id * address * bool * marketfighter_storage) =
+    if (not Set.mem id d.listed_offer) then
+        if fail_on_error then failwith ERROR.not_listed else [], d
+    else
+        let (buy_map, data, error) : ((address, marketfighter_data) map * marketfighter_data option * bool) =
+            (match (Big_map.find_opt id d.buys) with
+                | None -> (Map.empty,None,true)
+                | Some map -> (Map.update addr None map, Map.find_opt addr map, false)
+            ) in
+        if error then
+            if fail_on_error then failwith ERROR.not_listed else [], d
+        else
+            let (listed, buy_map) = if Map.size buy_map = 0n
+            then (Set.remove id d.listed_offer, None)
+            else (d.listed_offer, Some buy_map) in
+            let op = [Tezos.emit "%cancelBuying" (id: event_cancel_buying)] in
+            let op = (match data with
+                | None -> op
+                | Some md -> (Tezos.transaction unit md.price (Tezos.get_contract addr))::op
+            ) in
+            op,
+            { d with
+                listed_offer = listed;
+                buys = Big_map.update id buy_map d.buys
+            }
+
 (** Cancel entrypoint
     Cancel a Buy or Sell call.
-    TODO Add timing constraints on buyer cancelling
+    TODO Add timing constraints on buyer cancelling ?
     @caller any
     @event cancelSelling fighter_id
     @event cancelBuying fighter_id
@@ -165,24 +192,16 @@ let cancel (id, d : fighter_id * marketfighter_storage) =
             sells = Big_map.update id None d.sells
         }
     else
-        let _ = if (not Set.mem id d.listed_offer) then failwith ERROR.not_listed in
-        let (buy_map,data) = (match (Big_map.find_opt id d.buys) with
-            | None -> failwith ERROR.no_offer
-            | Some map -> (Map.update sender None map, Map.find_opt sender map)
-        ) in
-        let (listed, buy_map) = if Map.size buy_map = 0n
-        then (Set.remove id d.listed_offer, None)
-        else (d.listed_offer, Some buy_map) in
-        let op = [Tezos.emit "%cancelBuying" (id: event_cancel_buying)] in
-        let op = (match data with
-            | None -> op
-            | Some md -> (Tezos.transaction unit md.price (Tezos.get_contract sender))::op
-        ) in
-        op,
-        { d with
-            listed_offer = listed; 
-            buys = Big_map.update id buy_map d.buys
-        }
+        _cancel_buying (id, sender, true, d)
+
+(** CancelFor entrypoint
+    Cancel a Buy for someone else.
+    @caller manager
+    @event cancelBuying fighter_id
+*)
+let cancel_for (id, addr, d : fighter_id * address * marketfighter_storage) =
+    let _ = _manager_only d in
+    _cancel_buying (id, addr, false, d)
 
 let set_market_open (v, d : bool * marketfighter_storage) =
     let _ = _admin_only d in
@@ -217,12 +236,10 @@ let main (action, d: marketfighter_parameter * marketfighter_storage) =
     | Sell (id,price) -> sell(id,price,d)
     | Buy  (id,price) -> buy(id,price,d)
     | Cancel id -> cancel(id,d)
+    | CancelFor (id,addr) -> cancel_for(id,addr,d)
     : (operation list * marketfighter_storage))
 
 
 [@view] let get_fees (_,d: unit * marketfighter_storage) = {
     listing = d.listing_fee
-}
-[@view] let get_addr (_,d: unit * marketfighter_storage) = {
-    fighter = d.fighter_addr
 }

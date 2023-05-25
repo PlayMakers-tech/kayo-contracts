@@ -62,6 +62,7 @@ let init_store_fighter : fighter_storage = {
     fusion_fee = fusion_fee;
     attribute_addr = dummy_address;
     ability_addr = dummy_address;
+    marketfighter_addr = dummy_address;
     shop_addr = dummy_address;
     mints = Set.empty;
     fighters = Big_map.empty;
@@ -174,7 +175,7 @@ let test_attribute (name : string) (addr, op, amount : address * attribute_param
 // Marketfighter contract
 let init_store_marketfighter: marketfighter_storage = {
     admins = Set.literal [admin_address];
-    managers = Set.literal [manager_address];
+    managers = Set.literal [manager_address;(fighter_addr: address)];
     is_open = true;
     listing_fee = listing_fee;
     fighter_addr = (fighter_addr: address);
@@ -225,14 +226,15 @@ let test_shop (name : string) (addr, op, amount : address * shop_parameter * tez
 
 // Set missing rights
 let _ = Test.set_source admin_address
-let _ = Test.transfer_to_contract fighter_contract (SetAbilityAddr    ability_addr    ) 0tez
-let _ = Test.transfer_to_contract fighter_contract (SetAttributeAddr  attribute_addr  ) 0tez
-let _ = Test.transfer_to_contract fighter_contract (SetShopAddr       shop_addr       ) 0tez
-let _ = Test.transfer_to_contract fight_contract   (SetAttributeAddr  attribute_addr  ) 0tez
-let _ = Test.transfer_to_contract fight_contract   (SetShopAddr       shop_addr       ) 0tez
-let _ = Test.transfer_to_contract fight_contract   (SetTournamentAddr tournament_addr ) 0tez
-let _ = Test.transfer_to_contract tournament_contract (SetAttributeAddr attribute_addr ) 0tez
-let _ = Test.transfer_to_contract tournament_contract (SetShopAddr      shop_addr      ) 0tez
+let _ = Test.transfer_to_contract fighter_contract (SetAbilityAddr       ability_addr       ) 0tez
+let _ = Test.transfer_to_contract fighter_contract (SetAttributeAddr     attribute_addr     ) 0tez
+let _ = Test.transfer_to_contract fighter_contract (SetMarketfighterAddr marketfighter_addr ) 0tez
+let _ = Test.transfer_to_contract fighter_contract (SetShopAddr          shop_addr          ) 0tez
+let _ = Test.transfer_to_contract fight_contract   (SetAttributeAddr     attribute_addr     ) 0tez
+let _ = Test.transfer_to_contract fight_contract   (SetShopAddr          shop_addr          ) 0tez
+let _ = Test.transfer_to_contract fight_contract   (SetTournamentAddr    tournament_addr    ) 0tez
+let _ = Test.transfer_to_contract tournament_contract (SetAttributeAddr  attribute_addr     ) 0tez
+let _ = Test.transfer_to_contract tournament_contract (SetShopAddr       shop_addr          ) 0tez
 let _ = Test.transfer_to_contract fighter_contract (SetManagers (Set.literal [manager_address;fight_addr;tournament_addr;marketfighter_addr])) 0tez
 let _ = Test.transfer_to_contract fight_contract   (SetManagers (Set.literal [manager_address;tournament_addr])) 0tez
 let _ = Test.transfer_to_contract shop_contract    (SetManagers (Set.literal [manager_address;fight_addr;tournament_addr])) 0tez

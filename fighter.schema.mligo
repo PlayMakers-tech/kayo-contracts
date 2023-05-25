@@ -29,6 +29,7 @@ type fighter_storage = {
     minters: address set;
     ability_addr: address;
     attribute_addr: address;
+    marketfighter_addr: address;
     shop_addr: address;
     next_id: fighter_id;
     mint_fee: tez;
@@ -44,6 +45,7 @@ type fighter_parameter =
 | SetMinters of address set
 | SetAttributeAddr of address
 | SetAbilityAddr of address
+| SetMarketfighterAddr of address
 | SetShopAddr of address
 | SetMintFee of tez
 | SetFusionFee of tez

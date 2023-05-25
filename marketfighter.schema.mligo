@@ -32,6 +32,7 @@ type marketfighter_parameter =
 | Sell of fighter_id * tez
 | Buy of fighter_id * tez 
 | Cancel of fighter_id 
+| CancelFor of fighter_id * address 
 
 
 #endif

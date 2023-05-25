@@ -182,6 +182,13 @@ let set_ability_addr (addr, d : address * fighter_storage) =
     let _ = _admin_only d in
     [], {d with ability_addr = addr}
 
+(** Set the address of the Marketfighter smart contract
+    @caller admin
+*)
+let set_marketfighter_addr (addr, d : address * fighter_storage) =
+    let _ = _admin_only d in
+    [], {d with marketfighter_addr = addr}
+
 (** Set the address of the Shop smart contract
     @caller admin
 *)
@@ -224,10 +231,15 @@ let set_fighters_free (ids,d: fighter_id set * fighter_storage) =
 
 (** Fusion entrypoint
     Note that this only requests a fusion, reserve its id, and disable the parents
-    TODO The fusion needs to be reworked (maybe)
+    Father and mother get inactive after this process, and we therefore need to
+    make sure nobody has a buy offer on them. However calling Markefighter to Cancel
+    those potential offers could lead to too many operations (refunds).
+    So it is critical that bidders get a notification.
     @caller owner
     @amount fusion_fee
-    @event minting id
+    @event minting id None
+    @event inactive father
+    @event inactive mother
 *)
 let fusion (father, mother, d: fighter_id * fighter_id * fighter_storage) =
     let owner = Tezos.get_sender () in
@@ -250,7 +262,9 @@ let fusion (father, mother, d: fighter_id * fighter_id * fighter_storage) =
     let fmap = Big_map.add d.next_id n d.fighters in
     let fmap = Big_map.update father (Some f) fmap in
     let fmap = Big_map.update mother (Some m) fmap in
-    [Tezos.emit "%minting" (d.next_id, None: event_minting)],
+    [Tezos.emit "%minting" (d.next_id, None: event_minting);
+     Tezos.emit "%inactive" (father: event_inactive);
+     Tezos.emit "%inactive" (mother: event_inactive)],
     { d with
         next_id = d.next_id + 1n;
         fighters = fmap;
@@ -275,6 +289,8 @@ let set_fighter_listed (id, state, d: fighter_id * bool * fighter_storage) =
     Transfer the fighter from one owner to the next.
     This can be done on a whim by its owner, through a fight/tournament reward,
     or after a auction/trade from the market.
+    Note as well that it is possible that the new owner had a buy offer set on
+    the figher: we therefore need to cancel this offer for him if there was one.
     @caller owner|manager
     @event transfer (id, old_owner, new_owner)
 *)
@@ -286,7 +302,8 @@ let transfer (id, addr, d: fighter_id * address * fighter_storage) =
     let fbo = Big_map.update addr (Some set) d.fighters_by_owner in
     let old = Set.remove id (_get_fighters_by_owner (f.owner, d)) in
     let fbo = Big_map.update f.owner (if (Set.cardinal old) = 0n then None else Some old) fbo in
-    [Tezos.emit "%transfer" ((id, f.owner, addr): event_transfer)],
+    [Tezos.emit "%transfer" ((id, f.owner, addr): event_transfer);
+     Tezos.transaction (CancelFor (id, addr)) 0tez (Tezos.get_contract d.marketfighter_addr)],
     { d with
         fighters = Big_map.update id (Some {f with owner = addr}) d.fighters;
         fighters_by_owner = fbo;
@@ -327,6 +344,7 @@ let main (action, d: fighter_parameter * fighter_storage) =
     | SetFusionFee value -> set_fusion_fee(value,d)
     | SetAttributeAddr addr -> set_attribute_addr(addr,d)
     | SetAbilityAddr addr -> set_ability_addr(addr,d)
+    | SetMarketfighterAddr addr -> set_marketfighter_addr(addr,d)
     | SetShopAddr addr -> set_shop_addr(addr,d)
     | Fusion (father,mother) -> fusion(father,mother,d)
     | Transfer (id,addr) -> transfer(id,addr,d)
