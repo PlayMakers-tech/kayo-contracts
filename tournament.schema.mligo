@@ -32,6 +32,7 @@ type tournament_data = {
     def: tournament_def;
     state: tournament_state;
     ranks: fighter_id list;
+    refund: address list;
     metadata: tournament_metadata
 }
 
@@ -60,11 +61,13 @@ type tournament_parameter =
 | SetAttributeAddr of address
 | CreateTournament of tournament_def * timestamp
 | CancelTournament of tournament_id
-| JoinTournament of tournament_id * fighter_id
 | GenerateTree of tournament_id * tournament_metadata
 | NextPhase of tournament_id * (fighter_id * fighter_id) set * round_amount * round_duration
 | EndTournament of tournament_id * fighter_id list
 | ReportFight of fight_id
 | SinkFees of address
+// User entrypoints:
+| JoinTournament of tournament_id * fighter_id
+| GetRefund of tournament_id
 
 #endif

@@ -101,6 +101,7 @@ let new_tournament (id, def, stamp: tournament_id * tournament_def * timestamp) 
 		def = def;
 		state = Open;
         ranks = [];
+        refund = [];
         metadata = 0x00
 	} : tournament_data)
 
@@ -132,19 +133,56 @@ let create_tournament (def, stamp, d: tournament_def * timestamp * tournament_st
     }
 
 (** CancelTournament entrypoint
-	@caller tournament_manager
+    If, for example, we do not reach the minimum amount of fighters required,
+    we could take the decision to cancel a tournament
+    In that case, we can, externally grant some sorry XP.
+    But we also need to refund the stakes back to the owners of fighters, and we
+    do so by filling the refund property with the list of owners.
+    Those owners will be able to get back their stakes by calling GetRefund.
+    Note that an owner can be several times in the list.
+    @caller tournament_manager
+    @event cancelledTournament tournament_id
 *)
 let cancel_tournament (id, d: tournament_id * tournament_storage) =
     let _ = _scheduler_only d in
     let t = _get_tournament_data (id,d) in
     let _ = if t.state <> Open then failwith ERROR.cancel_not_open in
-    // TODO Could grant Fighters free XP
-    // TODO Need to grant them back their stakes too
-	[Tezos.transaction (SetFightersFree t.fighters) 0tez (Tezos.get_contract d.fighter_addr)],
+    let (_, stake, _, _, _, _) = t.def in
+    let add_owner (l, fid: address list * fighter_id) : address list =
+        let f = _get_fighter_data (fid,d) in (f.owner)::l
+    in
+    let t = { t with
+        state = Cancelled;
+        refund = if stake <> NoStake then Set.fold add_owner t.fighters [] else []
+    } in
+    [Tezos.transaction (SetFightersFree t.fighters) 0tez (Tezos.get_contract d.fighter_addr);
+     Tezos.emit "%cancelledTournament" (id: event_cancelled_tournament)],
     { d with
-		active_tournaments = Set.remove id d.active_tournaments;
-		tournaments = Big_map.update id (Some {t with state = Cancelled}) d.tournaments
-	}
+        active_tournaments = Set.remove id d.active_tournaments;
+        tournaments = Big_map.update id (Some t) d.tournaments
+    }
+
+(** GetRefund entrypoint
+    If a tournament was cancelled, owners can get a refund on their stakes
+    @caller owner
+*)
+let get_refund (id, d: tournament_id * tournament_storage) =
+    let t = _get_tournament_data (id,d) in
+    let _ = if t.state <> (Cancelled: tournament_state) then failwith ERROR.no_refund in
+    let sender = Tezos.get_sender () in
+    let (_, stake, _, _, _, _) = t.def in
+    let recurse (l, addr: (operation list * address list) * address) : (operation list * address list) =
+        let (op, r) = l in
+        if addr <> sender then (op, addr::r) else
+        let op = (match stake with
+        | TezStake v -> (Tezos.transaction unit v (Tezos.get_contract addr))::op
+        | ItemStake (item,qty) -> (Tezos.transaction (GrantItem (item,qty,addr)) 0tez (Tezos.get_contract d.shop_addr))::op
+        | _ -> op
+        ) in (op, r)
+    in
+    let (op, r) = List.fold recurse t.refund ([],[]) in
+    let _ = if List.length op = 0n then failwith ERROR.no_refund in
+    op, { d with tournaments = Big_map.update id (Some {t with refund = r}) d.tournaments }
 
 (** JoinTournament entrypoint
 	Allow a fighter to register for a tournament in Open state
@@ -300,6 +338,7 @@ let main (action, d: tournament_parameter * tournament_storage) =
     | NextPhase (id,pairings,ra,rd) -> next_phase(id,pairings,ra,rd,d)
     | EndTournament (id,ranks) -> end_tournament(id,ranks,d)
     | ReportFight fid -> report_fight(fid,d)
+    | GetRefund id -> get_refund(id,d)
     | SinkFees addr -> sink_fees(addr,d)
     : (operation list * tournament_storage))
 

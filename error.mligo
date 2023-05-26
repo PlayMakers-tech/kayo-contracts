@@ -62,6 +62,7 @@ module ERROR =
 	let cant_start_next_phase = "Can't start next phase of this tournament"
 	let end_not_ongoing = "Can only end ongoing tournament"
 	let not_enough_participants = "Not enough participants registered"
+	let no_refund       = "Can't pretend to a refund"
 
 	let wrong_proba_skin = "Issue with probabilities in skin_nodes/leaves setup"
 
