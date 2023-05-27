@@ -262,17 +262,6 @@ let resolve_round (id, round, result, data, d: fight_id * nat * int * round_data
     then [Tezos.emit "%newRound" ((id, f.a, f.b, round+1n, (Tezos.get_now ())+f.round_duration): event_new_round);event], d
 	else _resolve_fight(id,event,d)
 
-(** SetStrategy entrypoint
-    Allow the owner of a fighter to communicate their strategy.
-    This can be encrypted, to only the fight manager understands the message.
-    @caller owner
-    @event strategy (fight_id, fighter_id, data)
-*)
-let set_strategy (id, a, data, d: fight_id * fighter_id * strategy_data * fight_storage) =
-    let fa = _get_fighter_data (a,d) in
-    let _ = if Tezos.get_sender () <> fa.owner then failwith ERROR.rights_owner in
-    [Tezos.emit "%strategy" ((id, a, data): event_strategy)], d
-
 (** AddToQueue entrypoint
     Allow the owner of a fighter to queue the fighter for a fight.
     @caller owner
@@ -338,7 +327,6 @@ let main (action, d: fight_parameter * fight_storage) =
     | SetTournamentAddr addr -> set_tournament_addr(addr,d)
     | CreateFight (a,b,round_cnt,queue,round_duration) -> create_fight(a,b,round_cnt,queue,round_duration,d)
     | ResolveRound (id,round,result,data) -> resolve_round(id,round,result,data,d)
-    | SetStrategy (id,a,data) -> set_strategy(id,a,data,d)
     | AddToQueue (a,queue) -> add_to_queue(a,queue,d)
     | CancelQueue a -> cancel_queue(a,d)
     | SinkFees addr -> sink_fees(addr,d)

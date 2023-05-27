@@ -63,7 +63,8 @@ let new_fighter (id, owner, source: fighter_id * address * (shop_item option)) =
         father = 0n;
         mother = 0n;
         source = source;
-        name = ""
+        name = "";
+        strat = 0x00
 
     } : fighter_data)
 
@@ -322,6 +323,20 @@ let set_name (id, name, d: fighter_id * string * fighter_storage) =
         fighters = Big_map.update id (Some {f with name = name}) d.fighters
     }
 
+(** SetStrategy entrypoint
+    Allow the owner of a fighter to communicate their strategy.
+    This can be encrypted, to let only the fight manager understands the message.
+    This is supposedly composed of two parts: one for a default strategy,
+    and another one which purposes is to override the strategy for specific fights.
+    @caller owner
+*)
+let set_strategy (id, strat, d: fighter_id * strategy_data * fighter_storage) =
+    let f = _get_fighter_data (id,d) in
+    let _ = if Tezos.get_sender () <> f.owner then failwith ERROR.rights_owner in
+    [], { d with
+        fighters = Big_map.update id (Some {f with strat = strat}) d.fighters
+    }
+
 (** SinkFees entrypoint
     Allow the admin to retrieve the funds stored on the contract
     @caller admin
@@ -347,7 +362,8 @@ let main (action, d: fighter_parameter * fighter_storage) =
     | SetMarketfighterAddr addr -> set_marketfighter_addr(addr,d)
     | SetShopAddr addr -> set_shop_addr(addr,d)
     | Fusion (father,mother) -> fusion(father,mother,d)
-    | Transfer (id,addr) -> transfer(id,addr,d)
+    | Transfer (id,addr) -> transfer(id,addr,d)    
+    | SetStrategy (id,strat) -> set_strategy(id,strat,d)
     | SetName (id,name) -> set_name(id,name,d)
     | SetFighterState (id,fight,tournament,queue) -> set_fighter_state(id,fight,tournament,queue,d)
     | SetFighterListed (id,state) -> set_fighter_listed(id,state,d)

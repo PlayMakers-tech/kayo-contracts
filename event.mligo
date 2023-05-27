@@ -7,7 +7,6 @@ type event_level_up = fighter_id * nat // levelUp
 // Fight event
 type event_new_round = fight_id * fighter_id * fighter_id * nat * timestamp // newRound
 type event_round_resolved = fight_id * nat * int * round_data // roundResolved
-type event_strategy = fight_id * fighter_id * strategy_data // strategy
 type event_added_to_queue = fighter_id * fight_queue // addedToQueue
 // Fighter event
 type event_minting = fighter_id * (shop_item option) // minting

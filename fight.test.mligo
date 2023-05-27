@@ -159,23 +159,7 @@ let test =
       | Some (id, a, b, r, _) -> print_checkmark (id = 1n && a = token1 && b = token4 && r = 1n , true)
       | None -> print_checkmark (false, true) in
     let _ = print_step "Should catch newRound event" in
-    
-  
-    // *************** SetStrategy *************** //
-    let _ = print_topic "SetStrategy" in
 
-    let _ = test_fight "Should not allow the user to SetStrategy of another fighter" (bob_address, (SetStrategy (1n, token2, 0x00)), 0tez) false in
-    
-    let _ = test_fight "Should allow the user to SetStrategy" (bob_address, (SetStrategy (1n, token5, 0x00)), 0tez) true in
-
-    let event : event_strategy list = Test.get_last_events_from fight_typed_addr "strategy" in
-    let _ = match (List.head_opt event) with
-      | Some (id, f_id, b) -> print_checkmark (id = 1n && f_id = token5 && b = 0x00 , true)
-      | None -> print_checkmark (false, true) in
-    let _ = print_step "Should catch strategy event" in
-
-    let _ = test_fight "Should allow the user to SetStrategy again" (bob_address, (SetStrategy (1n, token5, 0x00)), 0tez) true in
-    
     // *************** ResolveRound *************** //
     let _ = print_topic "ResolveRound" in
 

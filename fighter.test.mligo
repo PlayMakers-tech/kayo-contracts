@@ -117,7 +117,13 @@ let test =
     let _ = print_step ("The name has been updated") in
     
     let _ = test_fighter "Should not allow user to put a name exceeding 32 characters" (alice_address, (SetName (token1,"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")), 0tez) false in
+   
+    // *************** SetStrategy *************** //
+    let _ = print_topic "SetStrategy" in
 
+    let _ = test_fighter "Should not allow the user to SetStrategy of another fighter" (bob_address, (SetStrategy (alice_token1, 0x12)), 0tez) false in  
+    
+    let _ = test_fighter "Should allow the user to SetStrategy" (alice_address, (SetStrategy (alice_token1, 0x34)), 0tez) true in
 
     // ******************** SetMintFee ******************** // 
     let _ = print_topic "SetMintFee" in

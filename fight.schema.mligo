@@ -12,7 +12,6 @@ type fight_id = nat
 type round_amount = nat
 type round_data = bytes
 type round_duration = int
-type strategy_data = bytes
 
 #include "shop.schema.mligo"
 
@@ -76,7 +75,6 @@ type fight_parameter =
 | SetTournamentAddr of address
 | CreateFight of fighter_id * fighter_id * round_amount * fight_queue * round_duration
 | ResolveRound of fight_id * nat * int * round_data
-| SetStrategy of fight_id * fighter_id * strategy_data
 | AddToQueue of fighter_id * fight_queue
 | CancelQueue of fighter_id
 | SinkFees of address

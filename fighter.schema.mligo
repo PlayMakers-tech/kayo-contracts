@@ -8,6 +8,8 @@ type fighter_id = nat
 #include "ability.schema.mligo"
 #include "shop.schema.mligo"
 
+type strategy_data = bytes
+
 type fighter_data = {
     id: fighter_id;
     owner: address;
@@ -20,7 +22,8 @@ type fighter_data = {
     father: fighter_id;
     mother: fighter_id;
     source: shop_item option;
-    name: string
+    name: string;
+    strat: strategy_data
 }
 
 type fighter_storage = {
@@ -60,5 +63,6 @@ type fighter_parameter =
 | Fusion of fighter_id * fighter_id
 | SetName of fighter_id * string
 | Transfer of fighter_id * address
+| SetStrategy of fighter_id * strategy_data
 
 #endif
