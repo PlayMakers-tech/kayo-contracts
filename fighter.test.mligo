@@ -121,9 +121,9 @@ let test =
     // *************** SetStrategy *************** //
     let _ = print_topic "SetStrategy" in
 
-    let _ = test_fighter "Should not allow the user to SetStrategy of another fighter" (bob_address, (SetStrategy (alice_token1, 0x12)), 0tez) false in  
+    let _ = test_fighter "Should not allow the user to SetStrategy of another fighter" (bob_address, (SetStrategy (token1, 0x12)), 0tez) false in  
     
-    let _ = test_fighter "Should allow the user to SetStrategy" (alice_address, (SetStrategy (alice_token1, 0x34)), 0tez) true in
+    let _ = test_fighter "Should allow the user to SetStrategy" (alice_address, (SetStrategy (token1, 0x34)), 0tez) true in
 
     // ******************** SetMintFee ******************** // 
     let _ = print_topic "SetMintFee" in
