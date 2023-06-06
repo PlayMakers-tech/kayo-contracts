@@ -24,6 +24,26 @@ let test =
     let _ = Test.transfer_to_contract fighter_contract (RealMint (token4,0xfb1404030201fb0101010101,[1n;6n;7n])) 0tez in
     let _ = Test.transfer_to_contract fighter_contract (RealMint (token5,0xfb1005030201fb0101010101,[1n;6n;7n])) 0tez in
 
+    // ************ SetAdmins ********* //
+    let _ = print_topic "SetAdmins" in
+    let _ = test_fight "Should not allow user to use SetAdmins entrypoint" (alice_address, SetAdmins (Set.literal [admin_address]), 0tez) false in
+    let _ = test_fight "Should allow admin to use SetAdmins entrypoint" (admin_address, SetAdmins (Set.literal [admin_address]), 0tez) true in
+
+    // ************ SetManagers ********* //
+    let _ = print_topic "SetManagers" in
+    let _ = test_fight "Should not allow user to use SetManagers entrypoint" (alice_address, SetManagers (Set.literal [manager_address; tournament_addr]), 0tez) false in
+    let _ = test_fight "Should allow admin to use SetManagers entrypoint" (admin_address, SetManagers (Set.literal [manager_address; tournament_addr]), 0tez) true in
+
+    // ************ SetMatchers ********* //
+    let _ = print_topic "SetMatchers" in
+    let _ = test_fight "Should not allow user to use SetMatchers entrypoint" (alice_address, SetMatchers (Set.literal [matcher_address; tournament_addr]), 0tez) false in
+    let _ = test_fight "Should allow manager to use SetMatchers entrypoint" (manager_address, SetMatchers (Set.literal [matcher_address; tournament_addr]), 0tez) true in
+
+    // ************ SetResolvers ********* //
+    let _ = print_topic "SetResolvers" in
+    let _ = test_fight "Should not allow user to use SetResolvers entrypoint" (alice_address, SetResolvers (Set.literal [resolver_address]), 0tez) false in
+    let _ = test_fight "Should allow manager to use SetResolvers entrypoint" (manager_address, SetResolvers (Set.literal [resolver_address]), 0tez) true in
+
     // ************ SetFighterAddr ********* //
     let _ = print_topic "SetFighterAddr" in
 
@@ -203,6 +223,8 @@ let test =
 
     let _ = test_fight "Should allow the resolver to ResolveRound 3" (resolver_address, (ResolveRound (1n, 3n, 1, 0x00)), 0tez) true in
     
+    let _ = Test.set_baker minter_address in
+    
     let event : event_round_resolved list = Test.get_last_events_from fight_typed_addr "roundResolved" in
     let _ = match (List.head_opt event) with
       | Some (id, r, w, b) -> print_checkmark (id = 1n && r = 3n && w = 1 && b = 0x00 , true)
@@ -231,8 +253,6 @@ let test =
 
     // *************** Reward *************** //
     let _ = print_topic "Reward" in
-   
-    let _ = Test.set_baker minter_address in
 
     let data1 : attribute_storage = Test.get_storage_of_address attribute_addr |> Test.decompile in
     let data1 : attribute_data = Big_map.find token1 data1.attributes in

@@ -13,8 +13,8 @@ let test =
     let _ = test_marketfighter "Should allow admin to use SetAdmins entrypoint"     (admin_address, SetAdmins (Set.literal [admin_address]), 0tez) true in
 
     let _ = print_topic ("SetManagers") in
-    let _ = test_marketfighter "Should not allow user to use SetMinters entrypoint"  (alice_address, SetManagers (Set.literal [minter_address]), 0tez) false in
-    let _ = test_marketfighter "Should allow admin to use SetMinters entrypoint"     (admin_address, SetManagers (Set.literal [minter_address]), 0tez) true in
+    let _ = test_marketfighter "Should not allow user to use SetMinters entrypoint"  (alice_address, SetManagers (Set.literal [manager_address; fighter_addr]), 0tez) false in
+    let _ = test_marketfighter "Should allow admin to use SetMinters entrypoint"     (admin_address, SetManagers (Set.literal [manager_address; fighter_addr]), 0tez) true in
 
     // ******************** Mint some fighter ******************** //
 

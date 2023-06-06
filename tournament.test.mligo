@@ -117,20 +117,21 @@ let test =
     let _ = Test.set_source scheduler_address in
     let _ = Test.transfer_to_contract tournament_contract (CreateTournament (stake_tournament_def,Tezos.get_now () + 180)) 0tez in
 
-
-    let bal1 : tez = Test.get_balance alice_address in
-
     let _ = Test.set_source alice_address in
     let _ = Test.transfer_to_contract tournament_contract (JoinTournament (2n, token1)) 110tez in
     
-    let bal2 : tez = Test.get_balance alice_address in
+    let bal1 : tez = Test.get_balance alice_address in
 
     let _ = Test.set_source scheduler_address in
     let _ = Test.transfer_to_contract_exn tournament_contract (CancelTournament 2n) 0tez in
 
-    let bal3 : tez = Test.get_balance alice_address in
+    let _ = test_tournament "Should not allow a random user to get back money if it was not in the tournament"  (bob_address, GetRefund 2n, 0tez) false in 
+
+    let _ = test_tournament "Should allow a user to get back money if it was in the tournament"  (alice_address, GetRefund 2n, 0tez) true in
+
+    let bal2 : tez = Test.get_balance alice_address in
     
-    let cond = ((bal1 - bal2) < (bal1 - bal3)) in
+    let cond = ((bal2 - bal1) = Some (9tez)) in
     let _ = print_checkmark (cond, true) in
     let _ = print_step "Should test cancelling after fighters have joined (with stakes)" in
 
