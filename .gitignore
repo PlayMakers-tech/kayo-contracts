@@ -1,0 +1,6 @@
+# Taqueria
+artifacts
+*.parameterList.mligo
+
+# Sublime
+*.sublime-*
