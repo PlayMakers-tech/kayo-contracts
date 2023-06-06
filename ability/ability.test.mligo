@@ -1,4 +1,4 @@
-#include "test.utils.mligo"
+#include "../test.utils.mligo"
 
 let test =
 

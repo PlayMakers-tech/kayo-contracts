@@ -13,10 +13,8 @@
     @version 1.0.0
 *)
 #include "fighter.schema.mligo"
-#include "ability.schema.mligo"
-#include "attribute.schema.mligo"
-#include "error.mligo"
-#include "event.mligo"
+#include "fighter.event.mligo"
+#include "../error.mligo"
 
 (** Private function to check that the caller is admin *)
 let _admin_only (d: fighter_storage) =

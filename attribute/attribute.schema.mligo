@@ -7,7 +7,7 @@ type attribute_value = bytes
 type attribute_skin = bytes
 type attribute_skin_node = bytes * nat * nat (* id, size, likelihood *)
 
-#include "fighter.schema.mligo"
+#include "../fighter/fighter.schema.mligo"
 
 type attribute_data = {
     id: fighter_id;

@@ -10,9 +10,9 @@
     @version 1.0.0
 *)
 #include "attribute.schema.mligo"
-#include "utils.mligo"
-#include "error.mligo"
-#include "event.mligo"
+#include "attribute.event.mligo"
+#include "../utils.mligo"
+#include "../error.mligo"
 
 (** Private function to check that the caller is admin *)
 let _admin_only (d: attribute_storage) =

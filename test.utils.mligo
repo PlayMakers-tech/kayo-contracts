@@ -74,7 +74,7 @@ let init_store_ability: ability_storage = {
         (Unique,     160n)
     ]
 }
-let ability_addr, _, _ = Test.originate_from_file "ability.mligo" "main" [] (Test.eval init_store_ability) 0tez
+let ability_addr, _, _ = Test.originate_from_file "ability/ability.mligo" "main" [] (Test.eval init_store_ability) 0tez
 let ability_typed_addr: (ability_parameter, ability_storage) typed_address = Test.cast_address ability_addr
 let ability_contract = Test.to_contract ability_typed_addr
 
@@ -90,7 +90,7 @@ let init_store_attribute: attribute_storage = {
     skin_leaves = (1n, [(0x00,2n,1n)]);
     attributes = Big_map.empty
 }
-let attribute_addr, _, _ = Test.originate_from_file "attribute.mligo" "main" [] (Test.eval init_store_attribute) 0tez
+let attribute_addr, _, _ = Test.originate_from_file "attribute/attribute.mligo" "main" [] (Test.eval init_store_attribute) 0tez
 let attribute_typed_addr: (attribute_parameter, attribute_storage) typed_address = Test.cast_address attribute_addr
 let attribute_contract = Test.to_contract attribute_typed_addr
 
@@ -114,7 +114,7 @@ let init_store_fighter : fighter_storage = {
     fighters = Big_map.empty;
     fighters_by_owner = Big_map.empty
 }
-let fighter_addr, _, _ = Test.originate_from_file "fighter.mligo" "main" [] (Test.eval init_store_fighter) 0tez
+let fighter_addr, _, _ = Test.originate_from_file "fighter/fighter.mligo" "main" [] (Test.eval init_store_fighter) 0tez
 let fighter_typed_addr: (fighter_parameter, fighter_storage) typed_address = Test.cast_address fighter_addr
 let fighter_contract = Test.to_contract fighter_typed_addr
 
@@ -135,7 +135,7 @@ let init_store_marketfighter: marketfighter_storage = {
     sells = Big_map.empty;
     buys = Big_map.empty;
 }
-let marketfighter_addr, _, _ = Test.originate_from_file "marketfighter.mligo" "main" [] (Test.eval init_store_marketfighter) 0tez
+let marketfighter_addr, _, _ = Test.originate_from_file "marketfighter/marketfighter.mligo" "main" [] (Test.eval init_store_marketfighter) 0tez
 let marketfighter_typed_addr: (marketfighter_parameter, marketfighter_storage) typed_address = Test.cast_address marketfighter_addr
 let marketfighter_contract = Test.to_contract marketfighter_typed_addr
 
@@ -157,7 +157,7 @@ let init_store_tournament : tournament_storage = {
     active_tournaments = Set.empty;
     tournaments = Big_map.empty;
 }
-let tournament_addr, _, _ = Test.originate_from_file "tournament.mligo" "main" [] (Test.eval init_store_tournament) 0tez
+let tournament_addr, _, _ = Test.originate_from_file "tournament/tournament.mligo" "main" [] (Test.eval init_store_tournament) 0tez
 let tournament_typed_addr: (tournament_parameter, tournament_storage) typed_address = Test.cast_address tournament_addr
 let tournament_contract = Test.to_contract tournament_typed_addr
 
@@ -181,7 +181,7 @@ let init_store_fight : fight_storage = {
     fights_by_fighter = Big_map.empty;
     queues = Big_map.empty
 }
-let fight_addr, _, _ = Test.originate_from_file "fight.mligo" "main" [] (Test.eval init_store_fight) 0tez
+let fight_addr, _, _ = Test.originate_from_file "fight/fight.mligo" "main" [] (Test.eval init_store_fight) 0tez
 let fight_typed_addr: (fight_parameter, fight_storage) typed_address = Test.cast_address fight_addr
 let fight_contract = Test.to_contract fight_typed_addr
 
@@ -211,7 +211,7 @@ let init_store_shop : shop_storage = {
     bundles = Map.empty;
     owned_items = Big_map.empty        
 }
-let shop_addr, _, _ = Test.originate_from_file "shop.mligo" "main" [] (Test.eval init_store_shop) 0tez
+let shop_addr, _, _ = Test.originate_from_file "shop/shop.mligo" "main" [] (Test.eval init_store_shop) 0tez
 let shop_typed_addr: (shop_parameter, shop_storage) typed_address = Test.cast_address shop_addr
 let shop_contract = Test.to_contract shop_typed_addr
 

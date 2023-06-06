@@ -13,7 +13,7 @@ type round_amount = nat
 type round_data = bytes
 type round_duration = int
 
-#include "shop.schema.mligo"
+#include "../shop/shop.schema.mligo"
 
 type fight_stake =
 | NoStake
@@ -29,8 +29,9 @@ type fight_reward =
 
 type fight_queue = fight_league * fight_stake * fight_reward
 
-#include "fighter.schema.mligo"
-#include "tournament.schema.mligo"
+#include "../fighter/fighter.schema.mligo"
+#include "../tournament/tournament.schema.mligo"
+#include "../attribute/attribute.schema.mligo"
 
 type fight_data = {
     id: fight_id;

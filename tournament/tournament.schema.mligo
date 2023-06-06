@@ -9,8 +9,8 @@ type tournament_state =
 | OnGoing
 | Finished
 
-#include "fight.schema.mligo"
-#include "fighter.schema.mligo"
+#include "../fight/fight.schema.mligo"
+#include "../fighter/fighter.schema.mligo"
 
 type tournament_league = fight_league
 type tournament_stake = fight_stake

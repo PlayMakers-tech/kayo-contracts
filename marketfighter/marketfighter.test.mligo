@@ -1,5 +1,5 @@
-#include "event.mligo"
-#include "test.utils.mligo"
+#include "marketfighter.event.mligo"
+#include "../test.utils.mligo"
 
 let test =
 

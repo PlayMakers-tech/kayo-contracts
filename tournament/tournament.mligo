@@ -12,8 +12,8 @@
     @version 1.0.0
 *)
 #include "tournament.schema.mligo"
-#include "error.mligo"
-#include "event.mligo"
+#include "tournament.event.mligo"
+#include "../error.mligo"
 
 (** Private function to check that the caller is admin *)
 let _admin_only (d: tournament_storage) =

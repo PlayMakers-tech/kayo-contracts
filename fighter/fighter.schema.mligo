@@ -3,10 +3,11 @@
 
 type fighter_id = nat
 
-#include "fight.schema.mligo"
-#include "tournament.schema.mligo"
-#include "ability.schema.mligo"
-#include "shop.schema.mligo"
+#include "../fight/fight.schema.mligo"
+#include "../tournament/tournament.schema.mligo"
+#include "../ability/ability.schema.mligo"
+#include "../shop/shop.schema.mligo"
+#include "../marketfighter/marketfighter.schema.mligo"
 
 type strategy_data = bytes
 

@@ -1,6 +1,6 @@
 #include "shop.schema.mligo"
-#include "error.mligo"
-#include "event.mligo"
+#include "shop.event.mligo"
+#include "../error.mligo"
 
 let _get_item_data (a, d: shop_item * shop_storage) =
     (Option.unopt_with_error (Map.find_opt a d.items) ERROR.shop_item : shop_item_data)

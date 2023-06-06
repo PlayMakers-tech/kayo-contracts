@@ -1,12 +1,12 @@
 #if !MARKETFIGHTER_SCHEMA
 #define MARKETFIGHTER_SCHEMA
 
-#include "fighter.schema.mligo"
-
 type marketfighter_data = {
     date: timestamp;
     price: tez
 }
+
+#include "../fighter/fighter.schema.mligo"
 
 type marketfighter_storage = {
     admins: address set;

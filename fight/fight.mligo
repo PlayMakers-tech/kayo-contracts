@@ -13,9 +13,8 @@
     @version 1.0.0
 *)
 #include "fight.schema.mligo"
-#include "attribute.schema.mligo"
-#include "error.mligo"
-#include "event.mligo"
+#include "fight.event.mligo"
+#include "../error.mligo"
 
 
 (** Private function to check that the caller is admin *)

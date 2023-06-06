@@ -12,8 +12,8 @@
     @version 1.0.0
 *)
 #include "ability.schema.mligo"
-#include "error.mligo"
-#include "utils.mligo"
+#include "../error.mligo"
+#include "../utils.mligo"
 
 (** Private function to check that the caller is admin *)
 let _admin_only (d: ability_storage) =

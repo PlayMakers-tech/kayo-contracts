@@ -1,5 +1,5 @@
-#include "test.utils.mligo"
-#include "event.mligo"
+#include "../test.utils.mligo"
+#include "shop.event.mligo"
 
 let test =
 

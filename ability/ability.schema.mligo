@@ -17,7 +17,7 @@ type ability_data = {
     cnt: nat
 }
 
-#include "fighter.schema.mligo"
+#include "../fighter/fighter.schema.mligo"
 
 type ability_storage = {
     admins: address set;
