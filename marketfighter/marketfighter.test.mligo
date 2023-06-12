@@ -120,7 +120,7 @@ let test =
 
 
     // ******************** Sell and buy test ******************** // 
-    // TODO move this part in another file for the future
+    (* TODO: move this part in another file for the future *)
     let _ = print_topic "Sell and Buy combination" in
 
     let _ = Test.set_source bob_address in

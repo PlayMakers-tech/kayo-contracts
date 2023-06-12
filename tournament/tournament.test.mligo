@@ -247,8 +247,9 @@ let test =
     // *************** Rewards ************* //
     let _ = print_topic "Rewards" in
 
+    (* End of the previous tournament for the first part of the test *)
     let wallet2 : tez = Test.get_balance alice_address in
-
+    
     let _ = print_checkmark (wallet1 + 100tez = wallet2, true) in
     let _ = print_step "Should win tezos after the tournament" in
     
@@ -257,8 +258,7 @@ let test =
     let _ = print_checkmark (attr.xp = 1000n + attr_before.xp, true) in   
     let _ = print_step "Should give xp to the Second" in
 
-    // Make a second tournament to see the two other reward possibilities
-
+    (* Make a second tournament to see the two other reward possibilities *)
     let default_tournament_def : tournament_def = ("League", NoStake, [FighterReward; ItemReward ("ticket1", 1n)], "RoundRobin", 2n, 999n ) in
     
     let _ = Test.set_source scheduler_address in
@@ -274,7 +274,7 @@ let test =
 
     let _ = Test.transfer_to_contract tournament_contract (NextPhase (4n, Set.literal([1n, 2n]), 3n, 10)) 0tez in
 
-    // Change baker to avoid problem
+    (* Change baker to avoid problem *)
     let _ = Test.set_baker minter_address in
     
     let _ = Test.set_source resolver_address in
@@ -282,7 +282,7 @@ let test =
     let _ = Test.transfer_to_contract fight_contract (ResolveRound (2n, 2n, 1, 0x00)) 0tez in
     let _ = Test.transfer_to_contract fight_contract (ResolveRound (2n, 3n, 1, 0x00)) 0tez in
    
-    // TODO: Need to be fix (should be able to end the tournament with ticket)
+    (* TODO: Need to be fix (should be able to end the tournament with ticket) *)
     let _ = Test.set_source scheduler_address in
     let _ = Test.transfer_to_contract tournament_contract (EndTournament (4n, [2n; 1n])) 0tez in
 

@@ -305,5 +305,38 @@ let test =
     let _ = Test.set_source alice_address in
     let _ = test_fight "The fighter has not join the following queue: (\"Some_cool_league\", TezStake 50tez, TezReward 120tez)" (alice_address, (AddToQueue (token1, current_queue)), 0tez) false in
 
+    let fight_ticket : shop_item_data = {
+        item = ("fticket":shop_item);
+        quantity = 99999999n;
+        price = 1tez;
+        consumers = Set.literal [fight_addr];
+    } in
+    let _ = Test.set_source manager_address in
+    let _ = Test.transfer_to_contract shop_contract (NewItem(fight_ticket)) 0tez in
+    let _ = Test.set_source alice_address in
+    let _ = Test.transfer_to_contract shop_contract (BuyItem ("fticket", 1n)) 1tez in
+    let current_queue : fight_queue = ("Some_cool_league", ItemStake ("fticket", 1n), NoReward) in
+
+    let _ = test_fight "The fighter joins a queue with a ticket" (alice_address, (AddToQueue (token1, current_queue)), 10tez) true in
+
+    let d : shop_storage = Test.get_storage_of_address shop_addr |> Test.decompile in
+    let _ = match Big_map.find_opt alice_address d.owned_items with
+            | Some (item) -> (match Map.find_opt "fticket" item with
+                            | Some (q) -> print_checkmark ((q = 0n), true)
+                            | None -> print_checkmark (false, true))
+            | None -> print_checkmark (false, true) in
+    let _ = print_step "The user has consumed his ticket" in
+
+    let _ = Test.set_source alice_address in
+    let _ = Test.transfer_to_contract fight_contract (CancelQueue (token1)) 0tez in
+
+    let d : shop_storage = Test.get_storage_of_address shop_addr |> Test.decompile in
+    let _ = match Big_map.find_opt alice_address d.owned_items with
+            | Some (item) -> (match Map.find_opt "fticket" item with
+                            | Some (q) -> print_checkmark ((q = 1n), true)
+                            | None -> print_checkmark (false, true))
+            | None -> print_checkmark (false, true) in
+    let _ = print_step "The user get his ticket back after cancelling" in
+
     let _ = Test.println "" in
     ()
