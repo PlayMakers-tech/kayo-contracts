@@ -198,6 +198,7 @@ let new_fight (id, a, b, round_cnt, queue, round_duration, tournament:
         result = 0;
         metadata = 0x00;
         start_date = Tezos.get_now ();
+        last_update = Tezos.get_now ();
         round_duration = round_duration;
         tournament = tournament
     } : fight_data)
@@ -253,7 +254,8 @@ let resolve_round (id, round, result, data, d: fight_id * nat * int * round_data
                 (Some { f with 
                     rounds = data::f.rounds;
                     result = f.result + result;
-                    state  = OnGoing
+                    state  = OnGoing;
+                    last_update = Tezos.get_now ();
                 }) d.fights;
     } in
     let event = Tezos.emit "%roundResolved" ((id, round, result, data): event_round_resolved) in

@@ -43,6 +43,7 @@ type fight_data = {
     state: fight_state;
     result: int;
     start_date: timestamp;
+    last_update: timestamp;
     round_duration: round_duration;
     tournament: tournament_id;
     metadata: fight_metadata
