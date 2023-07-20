@@ -213,9 +213,8 @@ let create_fight (a, b, round_cnt, queue, round_duration, d:
         fighter_id * fighter_id * round_amount * fight_queue * round_duration * fight_storage) =
     let _ = _matcher_only d in
     let fa = _get_fighter_data (a,d) in
-    let _ = if (fa.listed || fa.fight>0n) then failwith ERROR.unavailable_fighter "a" in
     let fb = _get_fighter_data (b,d) in
-    let _ = if (fb.listed || fb.fight>0n) then failwith ERROR.unavailable_fighter "b" in
+    let _ = if (fa.listed || fa.fight>0n || fb.listed || fb.fight>0n) then failwith ERROR.unavailable_fighter in
     let _ = if (fa.queue <> Some queue || fb.queue <> Some queue) &&
                (fa.tournament = 0n || fa.tournament <> fb.tournament) then failwith ERROR.different_queue in
     let queue_set = _get_fighters_in_queue (queue,d) in

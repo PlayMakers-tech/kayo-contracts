@@ -1,0 +1,272 @@
+{
+  "000": {
+    "title": "Fee",
+    "front": "Missing fee of {{fee}}ꜩ.\nYou may need to charge your account.",
+    "back": "Missing expected fee value"
+  },
+  "001": {
+    "title": "Stake",
+    "front": "Missing entry fee of {{queueStake}}ꜩ.\nYou may need to charge your account for the {{queueName}} queue",
+    "back": "Missing expected stake value."
+  },
+  "002": {
+    "title": "Price",
+    "front": "Missing expected price of {{price}}ꜩ.\nYou may need to charge your account",
+    "back": "Missing expected price value"
+  },
+  "003": {
+    "title": "Can't pretend to a refund",
+    "front": "Can't pretend to a refund",
+    "back": "Can't pretend to a refund"
+  },
+  "100": {
+    "title": "Fighter listed",
+    "front": "The fighter with ID #{{fighterId}} is currently listed in the marketplace and cannot be accessed at the moment.\nPlease try again later or choose a differentfighter.",
+    "back": "The fighter is listed in a marketplace"
+  },
+  "101": {
+    "title": "Fighter inactive",
+    "front": "The fighter with ID #{{fighterId}} is inactive.\n You will not have the possibility to use it again",
+    "back": "The fighter is inactive"
+  },
+  "102": {
+    "title": "Fighter minting",
+    "front": "The fighter #{{fighterId}} is not fully minted yet.\nPlease try again later.",
+    "back": "The fighter is not fully minted yet"
+  },
+  "103": {
+    "title": "Fighter queued",
+    "front": "The fighter #{{fighterId}} is in a queue.\n Please try again later or choose another fighter.",
+    "back": "The fighter is in a queue"
+  },
+  "104": {
+    "title": "Fighter fighting",
+    "front": "The fighter #{{fighterId}} is in a fight.\n Please try again later or choose another fighter.",
+    "back": "The fighter is in a fight"
+  },
+  "105": {
+    "title": "Fighter tournamenting",
+    "front": "The fighter #{{fighterId}} is in a tournament.\n Please try again later or choose another fighter.",
+    "back": "The fighter is in a tournament"
+  },
+  "106": {
+    "title": "Fighter occupied",
+    "front": "Fighter #{{fighterId}} is already occupied elsewhere.\n Please try again later or choose another fighter.",
+    "back": "Fighter already occupied elsewhere"
+  },
+  "107": {
+    "title": "Fighter not in queue",
+    "front": "Fighter #{{fighterId}} is not in a queue.",
+    "back": "Fighter not in a queue"
+  },
+  "108": {
+    "title": "Fighter minted",
+    "front": "The fighter #{{fighterId}} is already fully minted.",
+    "back": "The fighter is already fully minted"
+  },
+  "109": {
+    "title": "Fighter invalid id",
+    "front": "The following fighter ID is invalid: {{fighterId}}",
+    "back": " Invalid fighter id"
+  },
+  "110": {
+    "title": "Fighter invalid",
+    "front": "The following fighter is invalid: {{fighterId}}",
+    "back": "Invalid fighter"
+  },
+  "111": {
+    "title": "Fighter name too long",
+    "front": "The name {{name}} is too long, please choose a shorter name.",
+    "back": "Fighter name too long"
+  },
+  "112": {
+    "title": "Fighter unavailable",
+    "front": "The following fighter is unavailable: {{fighterId}}",
+    "back": "Unavaiable fighter"
+  },
+  "200": {
+    "title": "Fight invalid id",
+    "front": "The following fight ID is invalid: {{fightId}}",
+    "back": "Invalid fight id"
+  },
+  "201": {
+    "title": "Tournament invalid id",
+    "front": "The following tournament ID is invalid: {{tournamentId}}",
+    "back": "Invalid tournament id"
+  },
+  "202": {
+    "title": "Invalid round number",
+    "front": "The number of rounds is invalid",
+    "back": "Invalid round number"
+  },
+  "203": {
+    "title": "Invalid queue",
+    "front": "The following queue is invalid: {{queueId}}",
+    "back": "Invalid queue specified"
+  },
+  "204": {
+    "title": "Fighters are in different queues",
+    "front": "The following fighters are not in the same queue: {{fighterId1}} and {{fighterId2}}",
+    "back": "Both fighters are not in the same queue"
+  },
+  "205": {
+    "title": "Cancel not available",
+    "front": "Can only cancel open tournaments",
+    "back": "Can only cancel open tournaments"
+  },
+  "206": {
+    "title": "Tournament not open",
+    "front": "The following tournament #{{tournamentId}} is not open yet.\nPlease wait the starting time",
+    "back": "Can only join open tournaments"
+  },
+  "207": {
+    "title": "Close not open",
+    "front": "Can only close open tournaments",
+    "back": "Can only close open tournaments"
+  },
+  "208": {
+    "title": "Pending fights",
+    "front": "Some fights are still pending",
+    "back": "Some fights are still pending"
+  },
+  "209": {
+    "title": "Can't start next phase",
+    "front": "Can't start next phase of this tournament",
+    "back": "Can't start next phase of this tournament"
+  },
+  "210": {
+    "title": "End tournament not available",
+    "front": "Can only end ongoing tournament",
+    "back": "Can only end ongoing tournament"
+  },
+  "211": {
+    "title": "Not enough participants registered",
+    "front": "Not enough participants registered",
+    "back": "Not enough participants registered"
+  },
+  "300": {
+    "title": "Ability invalid id",
+    "front": "The following ability ID is invalid: {{abilityId}}",
+    "back": "Invalid ability id"
+  },
+  "301": {
+    "title": "Rarity invalid id",
+    "front": "The following rarity is invalid: {{rarityId}}",
+    "back": "Invalid rarity"
+  },
+  "302": {
+    "title": "Rarity overload",
+    "front": "Rarity overload",
+    "back": "Rarity overload"
+  },
+  "303": {
+    "title": "Ability known",
+    "front": "Ability already known",
+    "back": "Ability already known"
+  },
+  "304": {
+    "title": "Ability unknown",
+    "front": "You can't forget an ability you don't know.\n Please try again later or choose another ability.",
+    "back": "Can't forget Ability not known"
+  },
+  "305": {
+    "title": "No ability available",
+    "front": "No ability available for given fighter.",
+    "back": "No ability available for given fighter"
+  },
+  "400": {
+    "title": "Shop item invalid id",
+    "front": "The following shop item is invalid: {{shopItemId}}",
+    "back": "Invalid shop item"
+  },
+  "401": {
+    "title": "Shop bundle invalid id",
+    "front": "The following shop bundle is invalid: {{shopBundleId}}",
+    "back": "Invalid shop bundle"
+  },
+  "402": {
+    "title": "Price too low",
+    "front": "The following price is too low: {{price}}Tez.\nMinimum price is {{minPrice}}Tez",
+    "back": "Minimum price not reached"
+  },
+  "403": {
+    "title": "Already owned",
+    "front": "The following fighter is already owned: {{fighterId}}",
+    "back": "Fighter already owned"
+  },
+  "404": {
+    "title": "Fighter not listed",
+    "front": "The following fighter is not listed: {{fighterId}}",
+    "back": "Fighter not listed"
+  },
+  "405": {
+    "title": "No offer to cancel",
+    "front": "There is no offer to cancel on the Fighter",
+    "back": "No offer to cancel on the Fighter"
+  },
+  "406": {
+    "title": "Item out of stock",
+    "front": "The following item is out of stock: {{itemId}}",
+    "back": "Item out of stock"
+  },
+  "407": {
+    "title": "Not enough item owned",
+    "front": "You need more of the following item: {{itemId}}",
+    "back": "Not enough item owned"
+  },
+  "408": {
+    "title": "Shop closed",
+    "front": "The shop is currently closed",
+    "back": "Shop currently closed"
+  },
+  "409": {
+    "title": "Name already taken",
+    "front": "This following name is already taken for an item or a bundle: {{name}}",
+    "back": "Name for this new item/bundle already taken"
+  },
+  "500": {
+    "title": "Rights admin",
+    "front": "Missing admin rights",
+    "back": "Missing admin rights"
+  },
+  "501": {
+    "title": "Rights manager",
+    "front": "Missing manager rights",
+    "back": "Missing manager rights"
+  },
+  "502": {
+    "title": "Rights minter",
+    "front": "Missing minter rights",
+    "back": "Missing minter rights"
+  },
+  "503": {
+    "title": "Rights matcher",
+    "front": "Missing matcher rights",
+    "back": "Missing matcher rights"
+  },
+  "504": {
+    "title": "Rights resolver",
+    "front": "Missing resolver rights",
+    "back": "Missing resolver rights"
+  },
+  "505": {
+    "title": "Rights scheduler",
+    "front": "Missing scheduler rights",
+    "back": "Missing scheduler rights"
+  },
+  "506": {
+    "title": "Rights other",
+    "front": "Missing admin or contract rights",
+    "back": "Missing admin or contract rights"
+  },
+  "507": {
+    "title": "Rights owner",
+    "front": "Missing owner rights",
+    "back": "Missing owner rights"
+  },
+  "600": {
+    "title": "Wrong probabilities in skin_nodes/leaves setup",
+    "front": "Issue with probabilities in skin_nodes/leaves setup",
+    "back": "Issue with probabilities in skin_nodes/leaves setup"
+  }
+}
