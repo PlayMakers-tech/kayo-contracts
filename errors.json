@@ -211,7 +211,7 @@
   },
   "407": {
     "title": "Not enough item owned",
-    "front": "You need more of the following item: {{itemId}}",
+    "front": "You need more of the following item: {{queueStake}}",
     "back": "Not enough item owned"
   },
   "408": {
@@ -268,5 +268,11 @@
     "title": "Wrong probabilities in skin_nodes/leaves setup",
     "front": "Issue with probabilities in skin_nodes/leaves setup",
     "back": "Issue with probabilities in skin_nodes/leaves setup"
+  },
+  "subtraction_underflow": {
+    "title": "Subtraction underflow",
+    "front": "You don't have enough Tez to pay for this service.\nPlease add more Tez to your account.",
+    "back": "Subtraction underflow"
   }
+
 }
